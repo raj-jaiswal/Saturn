@@ -1,0 +1,11 @@
+/* Root wrapper */
+#root {
+  width: 100%;
+  margin: 0 auto;
+  text-align: center;
+}
+
+/* Utility: smooth transitions for hover/focus */
+* {
+  transition: color 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+}
