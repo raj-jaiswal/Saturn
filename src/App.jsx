@@ -213,7 +213,7 @@ function App() {
   const appStyle = { backgroundColor: "var(--bg)", color: "var(--muted)" };
 
   return (
-    <div className="min-h-screen" style={appStyle}>
+    <div className="h-screen flex flex-col overflow-hidden" style={appStyle}>
       <Taskbar
         onOpen={handleOpen}
         onSave={handleSave}
@@ -222,9 +222,11 @@ function App() {
         isDirty={isDirty}
       />
 
-      <div className="flex h-[calc(100vh-64px)] p-4 gap-4">
-        <div className="flex-[3] flex flex-col gap-4">
-          <div className="flex-1">
+      <div className="flex flex-1 min-h-0 p-4 gap-4">
+        
+        <div className="flex-[3] flex flex-col gap-4 min-h-0">
+          
+          <div className="flex-1 min-h-0">
             <TextEditor value={content} onChange={setContent} />
           </div>
           <div className="h-40">
@@ -232,7 +234,7 @@ function App() {
           </div>
         </div>
 
-        <div className="flex-[1] flex flex-col gap-4">
+        <div className="flex-[1] flex flex-col gap-4 min-h-0">
           <Registers registers={registers} onUpdateRegister={updateRegister} />
           <Memory
             memory={memory}
@@ -240,8 +242,9 @@ function App() {
             onUpdateMemory={updateMemory}
           />
         </div>
-      </div>
-    </div>
+
+  </div>
+</div>
   );
 }
 

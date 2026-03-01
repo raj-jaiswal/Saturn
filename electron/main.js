@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, Menu } from "electron";
+import { app, BrowserWindow, ipcMain, dialog, Menu, shell } from "electron";
 import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs/promises";
@@ -60,7 +60,9 @@ function createMenu(win) {
       submenu: [
         {
           label: "About Saturn",
-          click: () => win.webContents.send("menu:about"),
+            click: () => {
+              shell.openExternal("https://github.com/raj-jaiswal/Saturn");
+            },
         },
       ],
     },

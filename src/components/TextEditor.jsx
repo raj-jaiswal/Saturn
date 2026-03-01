@@ -36,14 +36,12 @@ export default function TextEditor({ value, onChange }) {
 
       onChange(newValue);
 
-      // move cursor after inserted spaces
       requestAnimationFrame(() => {
         textarea.selectionStart = textarea.selectionEnd = start + 4;
       });
     }
   }
 
-  // highlight comments ; and #
   function highlightCode(text) {
     return text
       .split("\n")
@@ -74,15 +72,15 @@ export default function TextEditor({ value, onChange }) {
 
   return (
     <div
-      className="h-full rounded-md shadow-inner flex flex-col bg-panel panel-border"
+      className="h-full min-h-0 rounded-md shadow-inner flex flex-col bg-panel panel-border"
       style={{ border: "1px solid var(--border)" }}
     >
       <div className="text-sm text-gray-300 px-3 pt-2 border-b border-gray-700">
         Editor
       </div>
 
-      <div className="flex flex-1 relative font-mono text-sm m-2 rounded-md overflow-hidden">
-
+      <div className="flex flex-1 min-h-0 relative font-mono text-sm m-2 rounded-md overflow-hidden">
+        
         {/* Line Numbers */}
         <div
           ref={gutterRef}
@@ -93,7 +91,9 @@ export default function TextEditor({ value, onChange }) {
           ))}
         </div>
 
-        <div className="flex-1 relative">
+        <div className="flex-1 min-h-0 relative">
+          
+          {/* Highlight Layer */}
           <pre
             ref={highlightRef}
             className="absolute inset-0 m-0 p-3 whitespace-pre-wrap break-words pointer-events-none custom-scrollbar"
@@ -106,14 +106,14 @@ export default function TextEditor({ value, onChange }) {
           />
 
           {/* Textarea */}
-            <textarea
-              ref={textareaRef}
-              className="absolute inset-0 w-full h-full resize-none p-3 bg-transparent text-transparent caret-white outline-none custom-scrollbar"
-              value={value}
-              onChange={(e) => onChange(e.target.value)}
-              onKeyDown={handleKeyDown}
-              spellCheck={false}
-            />
+          <textarea
+            ref={textareaRef}
+            className="absolute inset-0 w-full h-full resize-none p-3 bg-transparent text-transparent caret-white outline-none overflow-auto custom-scrollbar"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            onKeyDown={handleKeyDown}
+            spellCheck={false}
+          />
         </div>
       </div>
     </div>
