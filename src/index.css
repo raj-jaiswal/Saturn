@@ -1,1 +1,72 @@
 @import "tailwindcss";
+
+@font-face {
+  font-family: "Mono";
+  src: url("./assets/JetBrainsMono-Regular.ttf") format("ttf");
+  font-weight: 400;
+  font-style: normal;
+}
+
+:root{
+  --bg: #181818;            /* app background */
+  --panel: #1F1F1F;         /* panels / cards */
+  --muted: #c1c5cb;         /* muted text */
+  --accent: #0078D4;
+  --accent-700: #003762;
+  --accent-600: #0b558d;
+  --border: #2B2B2B;
+  --console-bg: #0d0d0d;
+  --mono: "Mono", Sans-Serif, monospace;
+  --success: #10b981;
+  --danger: #ef4444;
+}
+
+.bg-app { background-color: var(--bg); color: var(--muted); }
+.bg-panel { background-color: var(--panel); }
+.text-muted { color: var(--muted); }
+.text-accent { color: var(--accent); }
+.panel-border { border-color: var(--border); }
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100,100,100,0.5) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(100,100,100,0.35);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(140,140,140,0.55);
+}
+
+.btn-muted {
+  background: transparent;
+  border: 1px solid transparent;
+  padding: 0.4rem 0.6rem;
+  border-radius: 8px;
+  user-select: none;
+}
+
+.small-pill {
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.02);
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+:focus { outline: none; box-shadow: 0 0 0 2px var(--border); }

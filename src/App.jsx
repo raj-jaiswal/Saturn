@@ -1,4 +1,3 @@
-// src/App.jsx
 import React, { useState, useEffect, useRef } from "react";
 import Taskbar from "./components/Taskbar";
 import TextEditor from "./components/TextEditor";
@@ -7,6 +6,7 @@ import Registers from "./components/Registers";
 import Memory from "./components/Memory";
 
 import "./App.css";
+import "./index.css";
 
 import { openFile as fsOpen, saveFile as fsSave, saveFileAs as fsSaveAs } from "./services/file.service";
 
@@ -20,19 +20,27 @@ function App() {
 
   const [consoleLines, setConsoleLines] = useState(["Welcome to Saturn!", "Layout loaded successfully."]);
 
-  const [registers] = useState([
+  const [registers, setRegisters] = useState([
     { name: "A", value: "0x00000000" },
     { name: "B", value: "0x00000000" },
     { name: "PC", value: "0x00000000" },
     { name: "SP", value: "0x00000000" },
   ]);
 
+  // memory: 1024 words initialized to 0x00000000
+  const MEMORY_WORDS = 1024;
+  const PAGE_SIZE = 128;
+
+  const makeInitialMemory = () =>
+    Array.from({ length: MEMORY_WORDS }).map((_, i) => "0x00000000");
+
+  const [memory, setMemory] = useState(makeInitialMemory);
+
   // dirty tracking
   useEffect(() => {
     setIsDirty(content !== lastSavedContent);
   }, [content, lastSavedContent]);
 
-  // ---------- file actions ----------
   async function handleOpen() {
     if (isDirty) {
       const choice = await window.electronAPI.showUnsavedDialog();
@@ -41,7 +49,6 @@ function App() {
       } else if (choice === "cancel") {
         return;
       }
-      // if "dontsave" continue
     }
 
     const res = await fsOpen();
@@ -76,7 +83,16 @@ function App() {
     }
   }
 
-  function handleNewFile() {
+  async function handleNewFile() {
+    if (isDirty) {
+      const choice = await window.electronAPI.showUnsavedDialog();
+      if (choice === "save") {
+        await handleSave();
+      } else if (choice === "cancel") {
+        return;
+      }
+    }
+
     setContent(defaultContent);
     setLastSavedContent(defaultContent);
     setFilePath(null);
@@ -87,7 +103,22 @@ function App() {
     setConsoleLines((c) => [...c, "Assemble invoked (placeholder)."]);
   }
 
-  // ---------- keep stable refs for handlers (so IPC listeners call latest logic) ----------
+  // register update handler
+  function updateRegister(name, newValue) {
+    setRegisters((prev) => prev.map((r) => (r.name === name ? { ...r, value: newValue } : r)));
+    setConsoleLines((c) => [...c, `Register ${name} set to ${newValue}`]);
+  }
+
+  // memory update handler. index is absolute memory index [0..1023]
+  function updateMemory(index, newValue) {
+    setMemory((prev) => {
+      const copy = prev.slice();
+      copy[index] = newValue;
+      return copy;
+    });
+    setConsoleLines((c) => [...c, `Memory[0x${(index * 4).toString(16)}] = ${newValue}`]);
+  }
+
   const saveRef = useRef();
   const openRef = useRef();
   const newRef = useRef();
@@ -99,7 +130,7 @@ function App() {
   newRef.current = handleNewFile;
   saveAsRef.current = handleSaveAs;
 
-  // close handler uses freshest state (isDirty, etc.)
+  // close handler uses freshest state
   closeHandlerRef.current = async () => {
     if (!isDirty) {
       await window.electronAPI.confirmClose(true);
@@ -118,7 +149,6 @@ function App() {
     }
   };
 
-  // ---------- Register menu listeners ONCE and cleanly ----------
   useEffect(() => {
     if (!window.electronAPI) return;
 
@@ -147,12 +177,20 @@ function App() {
     };
   }, []); 
 
+  const appStyle = { backgroundColor: "var(--bg)", color: "var(--muted)" };
+
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      <Taskbar onOpen={handleOpen} onSave={handleSave} onAssemble={handleAssemble} filePath={filePath} isDirty={isDirty} />
+    <div className="min-h-screen" style={appStyle}>
+      <Taskbar
+        onOpen={handleOpen}
+        onSave={handleSave}
+        onAssemble={handleAssemble}
+        filePath={filePath}
+        isDirty={isDirty}
+      />
 
       <div className="flex h-[calc(100vh-64px)] p-4 gap-4">
-        <div className="flex-7 flex flex-col gap-4" style={{ flex: "0 0 70%" }}>
+        <div className="flex-[3] flex flex-col gap-4">
           <div className="flex-1">
             <TextEditor value={content} onChange={setContent} />
           </div>
@@ -161,9 +199,13 @@ function App() {
           </div>
         </div>
 
-        <div className="flex-3 flex flex-col gap-4" style={{ flex: "0 0 30%" }}>
-          <Registers registers={registers} />
-          <Memory />
+        <div className="flex-[1] flex flex-col gap-4">
+          <Registers registers={registers} onUpdateRegister={updateRegister} />
+          <Memory
+            memory={memory}
+            pageSize={PAGE_SIZE}
+            onUpdateMemory={updateMemory}
+          />
         </div>
       </div>
     </div>
