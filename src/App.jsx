@@ -195,7 +195,7 @@ function App() {
             <TextEditor value={content} onChange={setContent} />
           </div>
           <div className="h-40">
-            <Console lines={consoleLines} />
+            <Console lines={consoleLines} setLines={setConsoleLines} />
           </div>
         </div>
 
