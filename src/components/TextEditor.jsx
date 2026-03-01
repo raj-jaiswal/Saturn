@@ -1,15 +1,121 @@
-import React from "react";
+import React, { useRef, useEffect } from "react";
 
 export default function TextEditor({ value, onChange }) {
+  const textareaRef = useRef(null);
+  const highlightRef = useRef(null);
+  const gutterRef = useRef(null);
+
+  useEffect(() => {
+    const ta = textareaRef.current;
+    const hl = highlightRef.current;
+    const gt = gutterRef.current;
+
+    function sync() {
+      if (!hl || !gt) return;
+      hl.scrollTop = ta.scrollTop;
+      hl.scrollLeft = ta.scrollLeft;
+      gt.scrollTop = ta.scrollTop;
+    }
+
+    ta.addEventListener("scroll", sync);
+    return () => ta.removeEventListener("scroll", sync);
+  }, []);
+
+  function handleKeyDown(e) {
+    if (e.key === "Tab") {
+      e.preventDefault();
+
+      const textarea = textareaRef.current;
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+
+      const newValue =
+        value.substring(0, start) +
+        "    " +
+        value.substring(end);
+
+      onChange(newValue);
+
+      // move cursor after inserted spaces
+      requestAnimationFrame(() => {
+        textarea.selectionStart = textarea.selectionEnd = start + 4;
+      });
+    }
+  }
+
+  // highlight comments ; and #
+  function highlightCode(text) {
+    return text
+      .split("\n")
+      .map((line) => {
+        const match = line.match(/(;|#).*$/);
+        if (!match) return escapeHtml(line);
+
+        const index = match.index;
+        const codePart = line.slice(0, index);
+        const commentPart = line.slice(index);
+
+        return (
+          escapeHtml(codePart) +
+          `<span style="color:#6b7280">${escapeHtml(commentPart)}</span>`
+        );
+      })
+      .join("\n");
+  }
+
+  function escapeHtml(str) {
+    return str
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
+  const lines = value.split("\n");
+
   return (
-    <div className="h-full rounded-md shadow-inner p-3 flex flex-col bg-panel panel-border" style={{ border: "1px solid var(--border)" }}>
-      <div className="text-sm text-gray-300 mb-2">Editor</div>
-      <textarea
-        className="flex-1 w-full resize-none bg-(--bg) text-sm font-mono p-3 rounded-md outline-none custom-scrollbar"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        style={{border: "1px solid var(--border)"}}
-      />
+    <div
+      className="h-full rounded-md shadow-inner flex flex-col bg-panel panel-border"
+      style={{ border: "1px solid var(--border)" }}
+    >
+      <div className="text-sm text-gray-300 px-3 pt-2 border-b border-gray-700">
+        Editor
+      </div>
+
+      <div className="flex flex-1 relative font-mono text-sm m-2 rounded-md overflow-hidden">
+
+        {/* Line Numbers */}
+        <div
+          ref={gutterRef}
+          className="w-12 bg-black/30 text-gray-500 text-right pr-3 py-3 select-none overflow-hidden"
+        >
+          {lines.map((_, i) => (
+            <div key={i}>{i + 1}</div>
+          ))}
+        </div>
+
+        <div className="flex-1 relative">
+          <pre
+            ref={highlightRef}
+            className="absolute inset-0 m-0 p-3 whitespace-pre-wrap break-words pointer-events-none custom-scrollbar"
+            style={{
+              color: "white",
+              backgroundColor: "var(--bg)",
+              overflow: "hidden"
+            }}
+            dangerouslySetInnerHTML={{ __html: highlightCode(value) + "\n" }}
+          />
+
+          {/* Textarea */}
+            <textarea
+              ref={textareaRef}
+              className="absolute inset-0 w-full h-full resize-none p-3 bg-transparent text-transparent caret-white outline-none custom-scrollbar"
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              onKeyDown={handleKeyDown}
+              spellCheck={false}
+            />
+        </div>
+      </div>
     </div>
   );
 }

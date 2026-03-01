@@ -1,11 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
-/**
- * Props:
- *  - memory: array of hex strings length 1024 (0x00000000)
- *  - pageSize: number (128)
- *  - onUpdateMemory(index, newValue)
- */
 export default function Memory({ memory = [], pageSize = 128, onUpdateMemory = () => {} }) {
   const total = memory.length;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
@@ -13,9 +7,12 @@ export default function Memory({ memory = [], pageSize = 128, onUpdateMemory = (
   const [editingIndex, setEditingIndex] = useState(null);
   const [tempValue, setTempValue] = useState("");
 
+  // NEW: page editing state
+  const [pageInput, setPageInput] = useState("");
+  const [editingPage, setEditingPage] = useState(false);
+
   function addrToDisplay(index) {
-    // display word address in bytes (word 0 -> 0x0000, each word 4 bytes)
-    return `0x${(index * 4).toString(16).padStart(4, "0")}`;
+    return `0x${index.toString(16).padStart(4, "0")}`;
   }
 
   function normalizeHex(val) {
@@ -46,8 +43,25 @@ export default function Memory({ memory = [], pageSize = 128, onUpdateMemory = (
     setEditingIndex(null);
   }
 
+  function commitPageEdit() {
+    const num = parseInt(pageInput, 10);
+
+    if (!isNaN(num) && num >= 1 && num <= totalPages) {
+      setPage(num - 1);
+    }
+
+    setEditingPage(false);
+  }
+
+  useEffect(() => {
+    setPageInput(String(page + 1));
+  }, [page]);
+
   return (
-    <div className="bg-gray-800 rounded-md p-3 shadow-sm h-[70%] overflow-hidden bg-panel panel-border" style={{ border: "1px solid var(--border)" }}>
+    <div
+      className="bg-gray-800 rounded-md p-3 shadow-sm h-[70%] overflow-hidden bg-panel panel-border"
+      style={{ border: "1px solid var(--border)" }}
+    >
       <div className="flex items-center justify-between mb-2">
         <div className="text-sm text-gray-300">Memory</div>
         <div className="text-xs text-muted small-pill" style={{ color: "var(--muted)" }}>
@@ -96,7 +110,6 @@ export default function Memory({ memory = [], pageSize = 128, onUpdateMemory = (
           <div
             className="btn-muted cursor-pointer"
             onClick={() => setPage((p) => Math.max(0, p - 1))}
-            disabled={page === 0}
             style={{ color: page === 0 ? "rgba(255,255,255,0.2)" : "var(--muted)" }}
           >
             Prev
@@ -104,16 +117,28 @@ export default function Memory({ memory = [], pageSize = 128, onUpdateMemory = (
           <div
             className="btn-muted cursor-pointer"
             onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-            disabled={page >= totalPages - 1}
             style={{ color: page >= totalPages - 1 ? "rgba(255,255,255,0.2)" : "var(--muted)" }}
           >
             Next
           </div>
         </div>
 
-        <div className="text-xs text-muted">
+        <div className="text-xs text-muted flex items-center gap-1">
           Page{" "}
-          <span>{page + 1}</span> / {totalPages}
+          <input
+            autoFocus
+            value={pageInput}
+            onChange={(e) => setPageInput(e.target.value)}
+            onBlur={commitPageEdit}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") commitPageEdit();
+              if (e.key === "Escape") setEditingPage(false);
+            }}
+            className="text-xs font-mono rounded outline-none bg-(--bg) px-1 translate-y-[1px]"
+            style={{ width: 30, textAlign: "center", border: "1px solid #888"}}
+          />
+          {" "}
+          / {totalPages}
         </div>
       </div>
     </div>

@@ -9,9 +9,10 @@ import "./App.css";
 import "./index.css";
 
 import { openFile as fsOpen, saveFile as fsSave, saveFileAs as fsSaveAs } from "./services/file.service";
+import assemble, { buildState } from "./services/assembler.service";
 
 function App() {
-  const defaultContent = "// write your Simplex assembly here\n";
+  const defaultContent = "# write your Simplex assembly here\n";
 
   const [content, setContent] = useState(defaultContent);
   const [filePath, setFilePath] = useState(null);
@@ -27,8 +28,8 @@ function App() {
     { name: "SP", value: "0x00000000" },
   ]);
 
-  // memory: 1024 words initialized to 0x00000000
-  const MEMORY_WORDS = 1024;
+  // memory: 4096 words initialized to 0x00000000
+  const MEMORY_WORDS = 1024 * 4;
   const PAGE_SIZE = 128;
 
   const makeInitialMemory = () =>
@@ -100,7 +101,39 @@ function App() {
   }
 
   function handleAssemble() {
-    setConsoleLines((c) => [...c, "Assemble invoked (placeholder)."]);
+    const result = assemble(content);
+    const machine = buildState(result, MEMORY_WORDS);
+
+    const newLines = [];
+    newLines.push("=== Assemble output ===");
+
+    if (!machine.ok) {
+      newLines.push(`ERROR: ${machine.error}`);
+      setConsoleLines((c) => [...c, ...newLines]);
+      return;
+    }
+
+    setMemory(machine.memory);
+    setRegisters(machine.registers);
+
+    result.words.forEach((w) => {
+      const addr = w.address
+        .toString(16)
+        .toUpperCase()
+        .padStart(4, "0");
+      newLines.push(`${addr}  ${w.hex}   ${w.text}`);
+    });
+
+    if (result.warnings.length) {
+      newLines.push("--- warnings ---");
+      result.warnings.forEach((s) => newLines.push(`WARN: ${s}`));
+    }
+
+    newLines.push(
+      `Program loaded. PC=0x00000000, SP=${machine.registers[3].value}`
+    );
+
+    setConsoleLines((c) => [...c, ...newLines]);
   }
 
   // register update handler
@@ -109,14 +142,14 @@ function App() {
     setConsoleLines((c) => [...c, `Register ${name} set to ${newValue}`]);
   }
 
-  // memory update handler. index is absolute memory index [0..1023]
+  // memory update handler. index is absolute memory index
   function updateMemory(index, newValue) {
     setMemory((prev) => {
       const copy = prev.slice();
       copy[index] = newValue;
       return copy;
     });
-    setConsoleLines((c) => [...c, `Memory[0x${(index * 4).toString(16)}] = ${newValue}`]);
+    setConsoleLines((c) => [...c, `Memory[0x${(index).toString(16)}] = ${newValue}`]);
   }
 
   const saveRef = useRef();
