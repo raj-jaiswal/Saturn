@@ -8,7 +8,7 @@ export default function Memory() {
   }));
 
   return (
-    <div className="bg-gray-800 rounded-md p-3 shadow-sm h-1/2 overflow-auto">
+    <div className="bg-gray-800 rounded-md p-3 shadow-sm h-3/4 overflow-auto">
       <div className="text-sm text-gray-300 mb-2">Memory</div>
       <div className="text-sm font-mono">
         {rows.map((r, idx) => (

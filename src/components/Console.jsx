@@ -15,7 +15,7 @@ export default function Console({ lines = [] }) {
       <div className="text-xs text-gray-400 mb-2">Console</div>
       <div className="text-sm font-mono text-gray-200 space-y-1">
         {lines.map((l, i) => (
-          <div key={i} className="whitespace-pre-wrap">
+          <div key={i} className="whitespace-pre-wrap w-full">
             {l}
           </div>
         ))}

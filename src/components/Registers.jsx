@@ -2,7 +2,7 @@ import React from "react";
 
 export default function Registers({ registers = [] }) {
   return (
-    <div className="bg-gray-800 rounded-md p-3 shadow-sm h-1/2 overflow-auto">
+    <div className="bg-gray-800 rounded-md p-3 shadow-sm h-1/4 overflow-auto">
       <div className="text-sm text-gray-300 mb-2">Registers</div>
       <div className="grid grid-cols-2 gap-2">
         {registers.map((r) => (

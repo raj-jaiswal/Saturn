@@ -24,6 +24,13 @@ function createWindow() {
     win.loadFile(path.join(__dirname, "../dist/index.html"));
   }
 
+  win._allowClose = false;
+  win.on("close", (e) => {
+    if (win._allowClose) return; // allow normal close
+    e.preventDefault();
+
+    win.webContents.send("app:close");
+  });
   createMenu(win);
 }
 
@@ -32,63 +39,28 @@ function createMenu(win) {
     {
       label: "File",
       submenu: [
-        {
-          label: "New",
-          accelerator: "Ctrl+N",
-          click: () => win.webContents.send("menu:new"),
-        },
-        {
-          label: "Open",
-          accelerator: "Ctrl+O",
-          click: () => win.webContents.send("menu:open"),
-        },
-        {
-          label: "Save",
-          accelerator: "Ctrl+S",
-          click: () => win.webContents.send("menu:save"),
-        },
-        {
-          label: "Save As",
-          accelerator: "Ctrl+Shift+S",
-          click: () => win.webContents.send("menu:saveAs"),
-        },
+        { label: "New", accelerator: "Ctrl+N", click: () => win.webContents.send("menu:new") },
+        { label: "Open", accelerator: "Ctrl+O", click: () => win.webContents.send("menu:open") },
+        { label: "Save", accelerator: "Ctrl+S", click: () => win.webContents.send("menu:save") },
+        { label: "Save As", accelerator: "Ctrl+Shift+S", click: () => win.webContents.send("menu:saveAs") },
         { type: "separator" },
         { role: "quit" },
       ],
     },
-
     {
       label: "Edit",
-      submenu: [
-        { role: "undo" },
-        { role: "redo" },
-        { type: "separator" },
-        { role: "cut" },
-        { role: "copy" },
-        { role: "paste" },
-      ],
+      submenu: [{ role: "undo" }, { role: "redo" }, { type: "separator" }, { role: "cut" }, { role: "copy" }, { role: "paste" }],
     },
-
     {
       label: "View",
-      submenu: [
-        { role: "reload" },
-        { type: "separator" },
-        { role: "resetZoom" },
-        { role: "zoomIn" },
-        { role: "zoomOut" },
-        { role: "togglefullscreen" },
-      ],
+      submenu: [{ role: "reload" }, { type: "separator" }, { role: "resetZoom" }, { role: "zoomIn" }, { role: "zoomOut" }, { role: "togglefullscreen" }],
     },
-
     {
       label: "Help",
       submenu: [
         {
           label: "About Saturn",
-          click: () => {
-            win.webContents.send("menu:about");
-          },
+          click: () => win.webContents.send("menu:about"),
         },
       ],
     },
@@ -100,7 +72,7 @@ function createMenu(win) {
 
 app.whenReady().then(createWindow);
 
-// IPC handlers for file dialogs and fs
+// ------------------ File dialog / FS handlers (unchanged) ------------------
 ipcMain.handle("dialog:openFile", async () => {
   const result = await dialog.showOpenDialog({
     properties: ["openFile"],
@@ -132,4 +104,31 @@ ipcMain.handle("file:saveAs", async (event, content) => {
 ipcMain.handle("file:read", async (event, filePath) => {
   const content = await fs.readFile(filePath, "utf-8");
   return content;
+});
+
+// ------------------ Unsaved changes dialog ------------------
+ipcMain.handle("dialog:unsaved", async () => {
+  const result = await dialog.showMessageBox({
+    type: "warning",
+    buttons: ["Save", "Don't Save", "Cancel"],
+    defaultId: 0,
+    cancelId: 2,
+    message: "You have unsaved changes.",
+    detail: "Do you want to save before closing?",
+  });
+
+  if (result.response === 0) return "save";
+  if (result.response === 1) return "dontsave";
+  return "cancel";
+});
+
+ipcMain.handle("app:confirmClose", (event, shouldClose) => {
+  if (!shouldClose) return; // do nothing if user cancelled
+
+  const win = BrowserWindow.fromWebContents(event.sender);
+  if (!win) return;
+
+  // set per-window flag and close
+  win._allowClose = true;
+  win.close();
 });
