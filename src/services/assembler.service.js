@@ -199,6 +199,62 @@ export default function assemble(source) {
     address++;
   }
 
+  // Basic Infinite Loop Check
+
+  for (let i = 0; i < words.length; i++) {
+    const w = words[i];
+    const parts = w.text.split(/\s+/);
+    const mnemonic = parts[0].toLowerCase();
+
+    if (!relative_branch.has(mnemonic)) continue;
+
+    // reconstruct operand from hex
+    const fullWord = parseInt(w.hex, 16);
+    let operand = (fullWord >>> 8) & 0xFFFFFF;
+
+    // sign extend 24-bit
+    if (operand & 0x800000) {
+      operand |= 0xFF000000;
+    }
+
+    const target = w.address + 1 + operand;
+
+    // only care about backward jumps
+    if (target <= w.address) {
+
+      let escapes = false;
+
+      for (let j = target; j <= w.address; j++) {
+        const inner = words[j];
+        const innerParts = inner.text.split(/\s+/);
+        const innerMnemonic = innerParts[0].toLowerCase();
+
+        if (!relative_branch.has(innerMnemonic)) continue;
+
+        const innerWord = parseInt(inner.hex, 16);
+        let innerOperand = (innerWord >>> 8) & 0xFFFFFF;
+
+        if (innerOperand & 0x800000) {
+          innerOperand |= 0xFF000000;
+        }
+
+        const innerTarget = inner.address + 1 + innerOperand;
+
+        // If jump escapes outside the loop region
+        if (innerTarget < target || innerTarget > w.address) {
+          escapes = true;
+          break;
+        }
+      }
+
+      if (!escapes) {
+        warnings.push(
+          `Line ${w.lineno}: possible infinite loop (backward jump)`
+        );
+      }
+    }
+  }
+
   for (let name in labels) {
     if (!usedLabels.has(name))
       warnings.push(`Label '${name}' defined but never used`);

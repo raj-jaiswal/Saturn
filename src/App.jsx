@@ -125,15 +125,6 @@ function App() {
         result.warnings.forEach((w) => newLines.push(`WARN: ${w}`));
       }
 
-      // Also show any produced words (assembler still emitted them)
-      if (result.words && result.words.length > 0) {
-        newLines.push("--- assembled words (not loaded due to errors) ---");
-        result.words.forEach((w) => {
-          const addr = w.address.toString(16).toUpperCase().padStart(4, "0");
-          newLines.push(`${addr}  ${w.hex}   ${w.text}`);
-        });
-      }
-
       // show labels too
       newLines.push("--- labels ---");
       Object.keys(result.labels).forEach((k) => {
@@ -157,11 +148,6 @@ function App() {
 
     setMemory(machine.memory);
     setRegisters(machine.registers);
-
-    result.words.forEach((w) => {
-      const addr = w.address.toString(16).toUpperCase().padStart(4, "0");
-      newLines.push(`${addr}  ${w.hex}   ${w.text}`);
-    });
 
     if (result.warnings.length) {
       newLines.push("--- warnings ---");
