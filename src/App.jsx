@@ -102,10 +102,43 @@ function App() {
 
   function handleAssemble() {
     const result = assemble(content);
-    const machine = buildState(result, MEMORY_WORDS);
 
     const newLines = [];
     newLines.push("=== Assemble output ===");
+
+    // If the assembler produced errors, show them and do not load program
+    if (result.errors && result.errors.length > 0) {
+      newLines.push("ERRORS:");
+      result.errors.forEach((e) => newLines.push(`ERR: ${e}`));
+
+      if (result.warnings && result.warnings.length > 0) {
+        newLines.push("--- warnings ---");
+        result.warnings.forEach((w) => newLines.push(`WARN: ${w}`));
+      }
+
+      // Also show any produced words (assembler still emitted them)
+      if (result.words && result.words.length > 0) {
+        newLines.push("--- assembled words (not loaded due to errors) ---");
+        result.words.forEach((w) => {
+          const addr = w.address.toString(16).toUpperCase().padStart(4, "0");
+          newLines.push(`${addr}  ${w.hex}   ${w.text}`);
+        });
+      }
+
+      // show labels too
+      newLines.push("--- labels ---");
+      Object.keys(result.labels).forEach((k) => {
+        const v = result.labels[k];
+        const vHex = `0x${(v >>> 0).toString(16).toUpperCase().padStart(8, "0")}`;
+        newLines.push(`${k} : ${v} (${vHex})`);
+      });
+
+      setConsoleLines((c) => [...c, ...newLines]);
+      return;
+    }
+
+    // no fatal errors - proceed to load
+    const machine = buildState(result, MEMORY_WORDS);
 
     if (!machine.ok) {
       newLines.push(`ERROR: ${machine.error}`);
@@ -117,10 +150,7 @@ function App() {
     setRegisters(machine.registers);
 
     result.words.forEach((w) => {
-      const addr = w.address
-        .toString(16)
-        .toUpperCase()
-        .padStart(4, "0");
+      const addr = w.address.toString(16).toUpperCase().padStart(4, "0");
       newLines.push(`${addr}  ${w.hex}   ${w.text}`);
     });
 
@@ -129,9 +159,15 @@ function App() {
       result.warnings.forEach((s) => newLines.push(`WARN: ${s}`));
     }
 
-    newLines.push(
-      `Program loaded. PC=0x00000000, SP=${machine.registers[3].value}`
-    );
+    // print labels map
+    newLines.push("--- labels ---");
+    Object.keys(result.labels).forEach((k) => {
+      const v = result.labels[k];
+      const vHex = `0x${(v >>> 0).toString(16).toUpperCase().padStart(8, "0")}`;
+      newLines.push(`${k} : ${v} (${vHex})`);
+    });
+
+    newLines.push(`Program loaded. PC=0x00000000, SP=${machine.registers[3].value}`);
 
     setConsoleLines((c) => [...c, ...newLines]);
   }
