@@ -1,7 +1,8 @@
 import React from "react";
 import { FiFolder, FiSave, FiPlay } from "react-icons/fi";
+import { FaCode } from "react-icons/fa6";
 
-export default function Taskbar({ onOpen, onSave, onAssemble, filePath, isDirty }) {
+export default function Taskbar({ onOpen, onSave, onAssemble, filePath, isDirty, mode, toggleMode }) {
   const fileName = filePath ? filePath.split("/").pop() : "untitled.asm";
 
   return (
@@ -20,11 +21,16 @@ export default function Taskbar({ onOpen, onSave, onAssemble, filePath, isDirty 
         </button>
 
         <button
-          onClick={onAssemble}
+          onClick={() => {
+            if (mode == 'code'){
+              onAssemble(); 
+            }
+            toggleMode();
+          }}
           className="px-5 py-2 rounded-full hover:opacity-90 flex items-center gap-2 cursor-pointer bg-white text-(--bg)"
         >
-          <FiPlay size={18} />
-          <span style={{ fontWeight: 600 }}>Assemble</span>
+          {mode == 'code' ? <FiPlay size={18} /> : <FaCode size={18} />}
+          <span style={{ fontWeight: 600 }}>{(mode == 'code') ? "Assemble" : "Code"}</span>
         </button>
       </div>
       <div className="mx-6 h-[70%] w-[1px]" style={{ border: "1px solid var(--border)" }}></div>

@@ -53,7 +53,7 @@ function createMenu(win) {
     },
     {
       label: "View",
-      submenu: [{ role: "reload" }, { type: "separator" }, { role: "resetZoom" }, { role: "zoomIn" }, { role: "zoomOut" }, { role: "togglefullscreen" }],
+      submenu: [{ role: "toggleDevTools" }, { role: "reload" }, { type: "separator" }, { role: "resetZoom" }, { role: "zoomIn" }, { role: "zoomOut" }, { role: "togglefullscreen" }],
     },
     {
       label: "Help",

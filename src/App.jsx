@@ -4,6 +4,7 @@ import TextEditor from "./components/TextEditor";
 import Console from "./components/Console";
 import Registers from "./components/Registers";
 import Memory from "./components/Memory";
+import Listing from "./components/Listing";
 
 import "./App.css";
 import "./index.css";
@@ -33,9 +34,13 @@ function App() {
   const PAGE_SIZE = 128;
 
   const makeInitialMemory = () =>
-    Array.from({ length: MEMORY_WORDS }).map((_, i) => "0x00000000");
+    Array.from({ length: MEMORY_WORDS }).map(() => "0x00000000");
 
   const [memory, setMemory] = useState(makeInitialMemory);
+
+  const [mode, setMode] = useState("code"); // "code" | "listing"
+  const [assemblyResult, setAssemblyResult] = useState(null);
+  const [selectedIndex, setSelectedIndex] = useState(null);
 
   // dirty tracking
   useEffect(() => {
@@ -58,6 +63,7 @@ function App() {
       setLastSavedContent(res.content);
       setFilePath(res.path);
       setConsoleLines((c) => [...c, `Opened ${res.path}`]);
+      setMode("code");
     }
   }
 
@@ -102,6 +108,9 @@ function App() {
 
   function handleAssemble() {
     const result = assemble(content);
+
+    // save result so Listing can show words, even when there are errors
+    setAssemblyResult(result);
 
     const newLines = [];
     newLines.push("=== Assemble output ===");
@@ -170,6 +179,14 @@ function App() {
     newLines.push(`Program loaded. PC=0x00000000, SP=${machine.registers[3].value}`);
 
     setConsoleLines((c) => [...c, ...newLines]);
+    setMode("listing");
+  }
+
+  function toggleMode() {
+    if (mode == 'code')
+      setMode('listing');
+    else 
+      setMode('code');
   }
 
   // register update handler
@@ -256,14 +273,26 @@ function App() {
         onAssemble={handleAssemble}
         filePath={filePath}
         isDirty={isDirty}
+        mode={mode}
+        toggleMode={toggleMode}
       />
 
       <div className="flex flex-1 min-h-0 p-4 gap-4">
-        
+
         <div className="flex-[3] flex flex-col gap-4 min-h-0">
-          
+
           <div className="flex-1 min-h-0">
-            <TextEditor value={content} onChange={setContent} />
+            {mode === "code" ? (
+              <TextEditor value={content} onChange={setContent} />
+            ) : (
+              <Listing
+                words={assemblyResult?.words || []}
+                warnings={assemblyResult?.warnings || []}
+                errors={assemblyResult?.errors || []}
+                selectedIndex={selectedIndex}
+                setSelectedIndex={setSelectedIndex}
+              />
+            )}
           </div>
           <div className="h-40">
             <Console lines={consoleLines} setLines={setConsoleLines} />
@@ -279,8 +308,8 @@ function App() {
           />
         </div>
 
-  </div>
-</div>
+      </div>
+    </div>
   );
 }
 

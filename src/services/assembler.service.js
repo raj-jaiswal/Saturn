@@ -138,7 +138,8 @@ export default function assemble(source) {
       words.push({
         address,
         text: line,
-        hex: num === null ? toHex32(0) : toHex32(num)
+        hex: num === null ? toHex32(0) : toHex32(num),
+        lineno: i + 1 
       });
       address++;
       continue;
@@ -153,7 +154,7 @@ export default function assemble(source) {
     /* Unknown Mnemonic */
     if (!OPCODES.hasOwnProperty(mnemonic)) {
       errors.push(`Line ${i+1}: unknown mnemonic '${mnemonic}'`);
-      words.push({ address, text: line, hex: toHex32(0) });
+      words.push({ address, text: line, hex: toHex32(0), lineno: i + 1 });
       address++;
       continue;
     }
@@ -194,7 +195,7 @@ export default function assemble(source) {
     const opcode = OPCODES[mnemonic];
     const hex = encode(opcode, operandValue);
 
-    words.push({ address, text: line, hex });
+    words.push({ address, text: line, hex, lineno: i + 1 });
     address++;
   }
 
