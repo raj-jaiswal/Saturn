@@ -1,6 +1,8 @@
 import React from "react";
 import { FiFolder, FiSave, FiPlay } from "react-icons/fi";
 import { FaCode } from "react-icons/fa6";
+import { TbPlayerTrackNext } from "react-icons/tb";
+import { VscDebugRestart } from "react-icons/vsc";
 
 export default function Taskbar({ onOpen, onSave, onAssemble, filePath, isDirty, mode, toggleMode }) {
   const fileName = filePath ? filePath.split("/").pop() : "untitled.asm";
@@ -34,6 +36,15 @@ export default function Taskbar({ onOpen, onSave, onAssemble, filePath, isDirty,
         </button>
       </div>
       <div className="mx-6 h-[70%] w-[1px]" style={{ border: "1px solid var(--border)" }}></div>
+      
+      {
+        mode == 'listing' ? 
+        <div className="flex flex-row gap-2">
+          <button title="Run" className="px-5 py-3 rounded-full hover:opacity-90 flex items-center gap-2 cursor-pointer bg-white text-(--bg)"><FiPlay size={18}/></button>
+          <button title="Step" className="px-5 py-3 rounded-full hover:opacity-90 flex items-center gap-2 cursor-pointer bg-white text-(--bg)"><TbPlayerTrackNext size={18} /></button>
+          <button title="Restart" className="px-5 py-3 rounded-full hover:opacity-90 flex items-center gap-2 cursor-pointer bg-white text-(--bg)"><VscDebugRestart size={18}/></button>
+        </div> : <></>
+      }
 
       <div className="flex-1" />
 

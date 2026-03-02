@@ -50,7 +50,6 @@ export default function Listing({ words = [], warnings = [], errors = [], pc = n
         return (
           <div
             key={`${w.address}-${idx}`}
-            onClick={() => setSelectedIndex(idx)}
             className={`grid grid-cols-4 px-3 py-2 items-center cursor-pointer ${isSelected ? "bg-gray-700" : ""} ${isPC ? "border-l-4 border-amber-500" : ""}`}
           >
             <div className="text-sm">{w.address.toString(16).padStart(4, "0")}</div>
