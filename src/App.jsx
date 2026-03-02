@@ -21,6 +21,7 @@ function App() {
   const [lastSavedContent, setLastSavedContent] = useState(defaultContent);
 
   const [consoleLines, setConsoleLines] = useState(["Welcome to Saturn!", "Layout loaded successfully."]);
+  const [assemblyLogs, setAssemblyLogs] = useState([]);
 
   const [registers, setRegisters] = useState([
     { name: "A", value: "0x00000000" },
@@ -41,6 +42,9 @@ function App() {
   const [mode, setMode] = useState("code"); // "code" | "listing"
   const [assemblyResult, setAssemblyResult] = useState(null);
   const [selectedIndex, setSelectedIndex] = useState(null);
+
+  const assemblyResultRef = useRef(null);
+  const assemblyLogsRef = useRef([]);
 
   // dirty tracking
   useEffect(() => {
@@ -111,7 +115,8 @@ function App() {
 
     // save result so Listing can show words, even when there are errors
     setAssemblyResult(result);
-
+    window.electronAPI.setListingMode(true);
+    
     const newLines = [];
     newLines.push("=== Assemble output ===");
 
@@ -133,6 +138,7 @@ function App() {
         newLines.push(`${k} : ${v} (${vHex})`);
       });
 
+      setAssemblyLogs(newLines);
       setConsoleLines((c) => [...c, ...newLines]);
       return;
     }
@@ -142,6 +148,7 @@ function App() {
 
     if (!machine.ok) {
       newLines.push(`ERROR: ${machine.error}`);
+      setAssemblyLogs(newLines);
       setConsoleLines((c) => [...c, ...newLines]);
       return;
     }
@@ -164,15 +171,20 @@ function App() {
 
     newLines.push(`Program loaded. PC=0x00000000, SP=${machine.registers[3].value}`);
 
+    setAssemblyLogs(newLines);
     setConsoleLines((c) => [...c, ...newLines]);
     setMode("listing");
   }
 
   function toggleMode() {
-    if (mode == 'code')
+    if (mode == 'code'){
       setMode('listing');
-    else 
+      window.electronAPI.setListingMode(true);
+    }
+    else{
       setMode('code');
+      window.electronAPI.setListingMode(false);
+    }
   }
 
   // register update handler
@@ -222,18 +234,50 @@ function App() {
   };
 
   useEffect(() => {
+    assemblyResultRef.current = assemblyResult;
+  }, [assemblyResult]);
+
+  useEffect(() => {
+    assemblyLogsRef.current = assemblyLogs;
+  }, [assemblyLogs]);
+
+  useEffect(() => {
     if (!window.electronAPI) return;
 
     const removeNew = window.electronAPI.onMenuNew(() => newRef.current());
     const removeOpen = window.electronAPI.onMenuOpen(() => openRef.current());
     const removeSave = window.electronAPI.onMenuSave(() => saveRef.current());
     const removeSaveAs = window.electronAPI.onMenuSaveAs(() => saveAsRef.current());
+    const removeExportBinary =
+      window.electronAPI.onMenuExportBinary(() => {
+        const words = assemblyResultRef.current?.words || [];
+        window.electronAPI.exportBinary(words);
+      });
+
+    const removeExportListing =
+      window.electronAPI.onMenuExportListing(() => {
+        const r = assemblyResultRef.current || {};
+        window.electronAPI.exportListing({
+          words: r.words || [],
+          warnings: r.warnings || [],
+          errors: r.errors || []
+        });
+      });
+
+    const removeExportLogs =
+      window.electronAPI.onMenuExportLogs(() => {
+        window.electronAPI.exportLogs(assemblyLogsRef.current || []);
+      });
 
     return () => {
       removeNew && removeNew();
       removeOpen && removeOpen();
       removeSave && removeSave();
       removeSaveAs && removeSaveAs();
+
+      removeExportBinary && removeExportBinary();
+      removeExportListing && removeExportListing();
+      removeExportLogs && removeExportLogs();
     };
   }, []);
 
@@ -248,6 +292,10 @@ function App() {
       remove && remove();
     };
   }, []); 
+
+  useEffect(() => {
+    window.electronAPI?.setListingMode(false);
+  }, []);
 
   const appStyle = { backgroundColor: "var(--bg)", color: "var(--muted)" };
 

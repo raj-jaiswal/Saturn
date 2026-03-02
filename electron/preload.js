@@ -33,4 +33,26 @@ contextBridge.exposeInMainWorld("electronAPI", {
   // dialogs & confirm
   showUnsavedDialog: () => ipcRenderer.invoke("dialog:unsaved"),
   confirmClose: (val) => ipcRenderer.invoke("app:confirmClose", val),
+
+  exportBinary: (data) => ipcRenderer.invoke("export:binary", data),
+  exportListing: (data) => ipcRenderer.invoke("export:listing", data),
+  exportLogs: (data) => ipcRenderer.invoke("export:logs", data),
+
+  // tell main about listing mode
+  setListingMode: (isListing) =>
+    ipcRenderer.send("app:setListingMode", isListing),
+
+  // menu listeners
+  onMenuExportBinary: (cb) => {
+    ipcRenderer.on("menu:exportBinary", cb);
+    return () => ipcRenderer.removeListener("menu:exportBinary", cb);
+  },
+  onMenuExportListing: (cb) => {
+    ipcRenderer.on("menu:exportListing", cb);
+    return () => ipcRenderer.removeListener("menu:exportListing", cb);
+  },
+  onMenuExportLogs: (cb) => {
+    ipcRenderer.on("menu:exportLogs", cb);
+    return () => ipcRenderer.removeListener("menu:exportLogs", cb);
+  },
 });

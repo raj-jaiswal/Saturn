@@ -44,6 +44,25 @@ function createMenu(win) {
         { label: "Save", accelerator: "Ctrl+S", click: () => win.webContents.send("menu:save") },
         { label: "Save As", accelerator: "Ctrl+Shift+S", click: () => win.webContents.send("menu:saveAs") },
         { type: "separator" },
+        {
+          label: "Export Binary (.o)",
+          id: "exportBinary",
+          enabled: false,
+          click: () => win.webContents.send("menu:exportBinary")
+        },
+        {
+          label: "Export Listing (.l)",
+          id: "exportListing",
+          enabled: false,
+          click: () => win.webContents.send("menu:exportListing")
+        },
+        {
+          label: "Export Logs (.log)",
+          id: "exportLogs",
+          enabled: false,
+          click: () => win.webContents.send("menu:exportLogs")
+        },
+        { type: "separator" },
         { role: "quit" },
       ],
     },
@@ -133,4 +152,80 @@ ipcMain.handle("app:confirmClose", (event, shouldClose) => {
   // set per-window flag and close
   win._allowClose = true;
   win.close();
+});
+
+ipcMain.on("app:setListingMode", (event, isListing) => {
+  const menu = Menu.getApplicationMenu();
+  if (!menu) return;
+
+  const binary = menu.getMenuItemById("exportBinary");
+  const listing = menu.getMenuItemById("exportListing");
+  const logs = menu.getMenuItemById("exportLogs");
+
+  if (binary) binary.enabled = isListing;
+  if (listing) listing.enabled = isListing;
+  if (logs) logs.enabled = isListing;
+});
+
+ipcMain.handle("export:binary", async (event, words) => {
+  const result = await dialog.showSaveDialog({
+    filters: [{ name: "Object", extensions: ["o"] }]
+  });
+
+  if (result.canceled || !result.filePath) return;
+
+  const buffer = Buffer.alloc(words.length * 4);
+
+  words.forEach((w, i) => {
+    const value = parseInt(w.hex, 16);
+    buffer.writeUInt32LE(value >>> 0, i * 4);
+  });
+
+  await fs.writeFile(result.filePath, buffer);
+});
+
+ipcMain.handle("export:listing", async (event, payload) => {
+  const { words = [], warnings = [], errors = [] } = payload || {};
+  const result = await dialog.showSaveDialog({
+    filters: [{ name: "Listing", extensions: ["l"] }]
+  });
+
+  if (result.canceled || !result.filePath) return;
+
+  function statusFor(word, index) {
+    const ln = word.lineno;
+
+    const e = errors.find((s) => s.includes(`Line ${ln}`));
+    if (e) return `ERR: ${e}`;
+
+    const w = warnings.find((s) => s.includes(`Line ${ln}`));
+    if (w) return `WARN: ${w}`;
+
+    if (index === 0) {
+      const globalWarning = warnings.find((s) => !s.includes("Line "));
+      if (globalWarning) {
+        return `WARN: ${globalWarning}`;
+      }
+    }
+
+    return "";
+  }
+
+  const lines = words.map((w, idx) => {
+    const status = statusFor(w, idx);
+    const addr = w.address.toString(16).padStart(4, "0");
+    return `${addr}  ${w.hex}   ${w.text}${status ? "   " + status : ""}`;
+  });
+
+  await fs.writeFile(result.filePath, lines.join("\n"), "utf-8");
+});
+
+ipcMain.handle("export:logs", async (event, logs) => {
+  const result = await dialog.showSaveDialog({
+    filters: [{ name: "Log", extensions: ["log"] }]
+  });
+
+  if (result.canceled || !result.filePath) return;
+
+  await fs.writeFile(result.filePath, logs.join("\n"), "utf-8");
 });
