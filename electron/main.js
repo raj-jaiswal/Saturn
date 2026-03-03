@@ -63,6 +63,11 @@ function createMenu(win) {
           click: () => win.webContents.send("menu:exportLogs")
         },
         { type: "separator" },
+        {
+          label: "Import Object File (.o)",
+          click: () => win.webContents.send("menu:importObject")
+        },
+        { type: "separator" },
         { role: "quit" },
       ],
     },
@@ -228,4 +233,37 @@ ipcMain.handle("export:logs", async (event, logs) => {
   if (result.canceled || !result.filePath) return;
 
   await fs.writeFile(result.filePath, logs.join("\n"), "utf-8");
+});
+
+ipcMain.handle("import:object", async () => {
+  const result = await dialog.showOpenDialog({
+    properties: ["openFile"],
+    filters: [{ name: "Object", extensions: ["o"] }]
+  });
+
+  if (result.canceled || !result.filePaths.length) return null;
+
+  try {
+    const buffer = await fs.readFile(result.filePaths[0]);
+
+    // must be multiple of 4 bytes
+    if (buffer.length % 4 !== 0) return { error: true };
+
+    const words = [];
+
+    for (let i = 0; i < buffer.length; i += 4) {
+      const value = buffer.readUInt32LE(i);
+
+      words.push({
+        address: i / 4,
+        hex: (value >>> 0).toString(16).toUpperCase().padStart(8, "0"),
+        text: "",        // blank instruction
+        lineno: 0        // no source line
+      });
+    }
+
+    return { words };
+  } catch {
+    return { error: true };
+  }
 });

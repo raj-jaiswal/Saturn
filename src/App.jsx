@@ -269,6 +269,26 @@ function App() {
         window.electronAPI.exportLogs(assemblyLogsRef.current || []);
       });
 
+    const removeImportObject =
+      window.electronAPI.onMenuImportObject(async () => {
+        const result = await window.electronAPI.importObject();
+
+        if (!result || result.error) {
+          setConsoleLines(c => [...c, "Invalid File"]);
+          return;
+        }
+
+        setAssemblyResult({
+          words: result.words,
+          warnings: [],
+          errors: [],
+          labels: {}
+        });
+
+        setAssemblyLogs(["Object file loaded"]);
+        setMode("listing");
+      });
+
     return () => {
       removeNew && removeNew();
       removeOpen && removeOpen();
@@ -278,6 +298,7 @@ function App() {
       removeExportBinary && removeExportBinary();
       removeExportListing && removeExportListing();
       removeExportLogs && removeExportLogs();
+      removeImportObject && removeImportObject();
     };
   }, []);
 

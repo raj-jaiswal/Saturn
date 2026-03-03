@@ -37,8 +37,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   exportBinary: (data) => ipcRenderer.invoke("export:binary", data),
   exportListing: (data) => ipcRenderer.invoke("export:listing", data),
   exportLogs: (data) => ipcRenderer.invoke("export:logs", data),
-
-  // tell main about listing mode
+  importObject: () => ipcRenderer.invoke("import:object"),
+  
   setListingMode: (isListing) =>
     ipcRenderer.send("app:setListingMode", isListing),
 
@@ -54,5 +54,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
   onMenuExportLogs: (cb) => {
     ipcRenderer.on("menu:exportLogs", cb);
     return () => ipcRenderer.removeListener("menu:exportLogs", cb);
+  },
+  onMenuImportObject: (cb) => {
+    ipcRenderer.on("menu:importObject", cb);
+    return () => ipcRenderer.removeListener("menu:importObject", cb);
   },
 });
