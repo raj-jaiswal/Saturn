@@ -292,3 +292,27 @@ ipcMain.handle("import:object", async () => {
     return { error: true };
   }
 });
+
+ipcMain.handle("import:object-from-path", async (event, filePath) => {
+  try {
+    const buffer = await fs.readFile(filePath);
+
+    if (buffer.length % 4 !== 0) return { error: true };
+
+    const words = [];
+
+    for (let i = 0; i < buffer.length; i += 4) {
+      const value = buffer.readUInt32LE(i);
+      words.push({
+        address: i / 4,
+        hex: (value >>> 0).toString(16).toUpperCase().padStart(8, "0"),
+        text: "",
+        lineno: 0
+      });
+    }
+
+    return { words };
+  } catch {
+    return { error: true };
+  }
+});

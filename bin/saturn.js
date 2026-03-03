@@ -10,6 +10,9 @@ import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 async function usage() {
   console.log(`saturn - Simplex assembler tool
 
@@ -80,56 +83,79 @@ async function main() {
   }
   const assemble = asmModule.default;
 
-  // if -o or --open: prefer to hand to GUI (see below). We will attempt to call a packaged app if present.
+  // if -o or --open: launch GUI
   if (flagOpenIndex !== -1) {
-    // On CLI-only mode we can try to open the file with default OS handler.
-    // If the GUI is installed and registered for .asm, OS will open it; otherwise print hint.
-    try {
-      // cross-platform "open" logic (not trying to spawn the application exe)
-      if (process.platform === "win32") {
-        const child = await import("child_process");
-        child.execSync(`start "" "${targetPath}"`);
-      } else if (process.platform === "darwin") {
-        const child = await import("child_process");
-        child.execSync(`open "${targetPath}"`);
-      } else {
-        const child = await import("child_process");
-        child.execSync(`xdg-open "${targetPath}"`);
-      }
-      console.log("Open request sent.");
-      process.exit(0);
-    } catch (err) {
-      console.error("Could not open file with GUI. Install Saturn or register file association.");
-      process.exit(1);
+    const { spawn } = await import("child_process");
+    const projectRoot = path.resolve(__dirname, "..");
+
+    // If packaged exe exists, use it
+    const packagedExe = path.join(projectRoot, "release", "Saturn.exe");
+
+    let child;
+
+    if (await fs.stat(packagedExe).catch(() => null)) {
+      // Production mode
+      child = spawn(packagedExe, [`--open=${targetPath}`], {
+        stdio: "inherit"
+      });
+    } else {
+      // Dev mode
+      const electronCli = path.join(
+        projectRoot,
+        "node_modules",
+        "electron",
+        "cli.js"
+      );
+
+      child = spawn(process.execPath, [electronCli, ".", `--open=${targetPath}`], {
+        stdio: "inherit",
+        cwd: projectRoot
+      });
     }
+
+    child.on("error", (e) => {
+      console.error(e);
+      console.error("Unable to open GUI");
+    });
+
+    return;
   }
 
-  // if -r / --run: we won't assemble; we just verify object file and copy into listing and log
+  // if -r / --run: launch GUI in import mode
   if (flagRunIndex !== -1) {
-    // For object import headless, just parse 32-bit LITTLE-ENDIAN words and write listing & log (no disassembly)
-    try {
-      const buf = await fs.readFile(targetPath);
-      if (buf.length % 4 !== 0) throw new Error("Invalid object file length");
+    const { spawn } = await import("child_process");
+    const projectRoot = path.resolve(__dirname, "..");
 
-      const words = [];
-      for (let i = 0; i < buf.length; i += 4) {
-        const v = buf.readUInt32LE(i);
-        words.push({ address: i/4, hex: (v >>> 0).toString(16).toUpperCase().padStart(8,"0"), text: "", lineno: 0 });
-      }
-      const base = basenameNoExt(targetPath);
-      const dir = path.dirname(targetPath);
-      const lpath = path.join(dir, base + ".l");
-      const opath = path.join(dir, base + ".o"); // can copy original too if desired
-      const logpath = path.join(dir, base + ".log");
-      await writeListing(words, [], [], lpath);
-      await writeObject(words, opath);
-      await writeLog([`Imported object ${targetPath}`], logpath);
-      console.log("Wrote:", lpath, opath, logpath);
-      process.exit(0);
-    } catch (err) {
-      console.error("Invalid File");
-      process.exit(2);
+    // If packaged exe exists, use it
+    const packagedExe = path.join(projectRoot, "release", "Saturn.exe");
+
+    let child;
+
+    if (await fs.stat(packagedExe).catch(() => null)) {
+      // Production mode
+      child = spawn(packagedExe, [`--import=${targetPath}`], {
+        stdio: "inherit"
+      });
+    } else {
+      // Dev mode
+      const electronCli = path.join(
+        projectRoot,
+        "node_modules",
+        "electron",
+        "cli.js"
+      );
+
+      child = spawn(process.execPath, [electronCli, ".", `--import=${targetPath}`], {
+        stdio: "inherit",
+        cwd: projectRoot
+      });
     }
+    child.on("error", (e) => {
+      console.error(e);
+      console.error("Unable to open GUI");
+    });
+
+    return;
   }
 
   // Default: assemble the source file and write outputs
@@ -166,7 +192,7 @@ async function main() {
     await writeObject(result.words || [], opath);
     await writeLog(logs, logpath);
 
-    console.log("Wrote:", lpath, opath, logpath);
+    console.log(`Wrote:\n\t${lpath}\n\t${opath}\n\t${logpath}`);
     process.exit(0);
   } catch (err) {
     console.error("Failed:", err.message || err);

@@ -332,7 +332,7 @@ function App() {
 
     const remove2 = window.electronAPI.onCLIImportObject((filePath) => {
       // ask main to import object file (we created import handler earlier)
-      window.electronAPI.importObject(filePath).then((result) => {
+      window.electronAPI.importObjectFile(filePath).then((result) => {
         if (!result || result.error) {
           setConsoleLines(c => [...c, "Invalid File"]);
           return;
