@@ -4,8 +4,11 @@ import { FaCode } from "react-icons/fa6";
 import { TbPlayerTrackNext } from "react-icons/tb";
 import { VscDebugRestart } from "react-icons/vsc";
 
-export default function Taskbar({ onOpen, onSave, onAssemble, filePath, isDirty, mode, toggleMode }) {
+export default function Taskbar({ onOpen, onSave, onAssemble, filePath, isDirty, mode, toggleMode, onRun, onStep, onReset, hasErrors }) {
   const fileName = filePath ? filePath.split("/").pop() : "untitled.asm";
+  const emulatorBtnClass = `px-5 py-3 rounded-full flex items-center gap-2 bg-white text-(--bg) transition-opacity ${
+    hasErrors ? "opacity-50 cursor-not-allowed" : "hover:opacity-90 cursor-pointer"
+  }`;
 
   return (
     <div
@@ -40,9 +43,30 @@ export default function Taskbar({ onOpen, onSave, onAssemble, filePath, isDirty,
       {
         mode == 'listing' ? 
         <div className="flex flex-row gap-2">
-          <button title="Run" className="px-5 py-3 rounded-full hover:opacity-90 flex items-center gap-2 cursor-pointer bg-white text-(--bg)"><FiPlay size={18}/></button>
-          <button title="Step" className="px-5 py-3 rounded-full hover:opacity-90 flex items-center gap-2 cursor-pointer bg-white text-(--bg)"><TbPlayerTrackNext size={18} /></button>
-          <button title="Restart" className="px-5 py-3 rounded-full hover:opacity-90 flex items-center gap-2 cursor-pointer bg-white text-(--bg)"><VscDebugRestart size={18}/></button>
+          <button 
+            title="Run" 
+            onClick={onRun}
+            disabled={hasErrors} // Prevents clicking
+            className={emulatorBtnClass}
+          >
+            <FiPlay size={18}/>
+          </button>
+          <button 
+            title="Step" 
+            onClick={onStep}
+            disabled={hasErrors}
+            className={emulatorBtnClass}
+          >
+            <TbPlayerTrackNext size={18} />
+          </button>
+          <button 
+            title="Reset" 
+            onClick={onReset}
+            disabled={hasErrors}
+            className={emulatorBtnClass}
+          >
+            <VscDebugRestart size={18}/>
+          </button>
         </div> : <></>
       }
 

@@ -1,229 +1,105 @@
-function parseHexWord(str) {
-  if (typeof str !== "string") return 0;
-  return parseInt(str.replace(/^0x/i, ""), 16) >>> 0;
-}
-function toHexStr(val) {
-  return "0x" + (val >>> 0).toString(16).toUpperCase().padStart(8, "0");
+// Helper to safely convert 32-bit signed integers to your hex string format
+export function toHex32(num) {
+  return "0x" + (num >>> 0).toString(16).toUpperCase().padStart(8, "0");
 }
 
-export function createEmulator(initialMemory = [], initialRegisters = []) {
-  let mem = initialMemory.map((m) => toHexStr(parseHexWord(m)));
-  let regs = {
-    A: 0,
-    B: 0,
-    PC: 0,
-    SP: 0,
+// Helper to parse hex strings back into 32-bit signed integers for math
+export function parseHex(hexStr) {
+  return parseInt(hexStr, 16) | 0; 
+}
+
+export function executeStep(registers, memory) {
+  // 1. Parse current registers
+  let A = parseHex(registers.find(r => r.name === "A").value);
+  let B = parseHex(registers.find(r => r.name === "B").value);
+  let PC = parseHex(registers.find(r => r.name === "PC").value);
+  let SP = parseHex(registers.find(r => r.name === "SP").value);
+
+  // Bounds check
+  if (PC < 0 || PC >= memory.length) {
+    return { error: `PC out of bounds (0x${PC.toString(16)})`, halted: true };
+  }
+
+  // 2. Fetch and Decode Instruction
+  const instruction = parseHex(memory[PC]);
+  const opcode = instruction & 0xFF;        // Lowest 8 bits
+  const operand = instruction >> 8;         // Top 24 bits (Sign-extended automatically by JS >>)
+
+  if (opcode === 18) {
+    return { halted: true }; // HALT instruction
+  }
+
+  // 3. Implicitly increment PC BEFORE instruction execution, as required by the docs
+  PC = PC + 1;
+
+  let newMemory = memory; // We will only copy memory if we need to write to it
+
+  // Helper for safe memory reads
+  const readMem = (address) => {
+    if (address < 0 || address >= memory.length) throw new Error(`Memory read out of bounds at ${address}`);
+    return parseHex(memory[address]);
   };
 
-  function loadRegistersFromArray(arr) {
-    arr.forEach((r) => {
-      const name = r.name;
-      const val = parseHexWord(r.value || "0x0");
-      regs[name] = val >>> 0;
-    });
-  }
-
-  function snapshotRegistersToArray() {
-    return [
-      { name: "A", value: toHexStr(regs.A) },
-      { name: "B", value: toHexStr(regs.B) },
-      { name: "PC", value: toHexStr(regs.PC) },
-      { name: "SP", value: toHexStr(regs.SP) },
-    ];
-  }
-
-  function readWord(addr) {
-    if (addr < 0 || addr >= mem.length) return 0;
-    return parseInt(mem[addr].replace(/^0x/i, ""), 16) >>> 0;
-  }
-
-  function writeWord(addr, value) {
-    if (addr < 0 || addr >= mem.length) return false;
-    mem[addr] = toHexStr(value >>> 0);
-    return true;
-  }
-
-  // sign-extend 24-bit operand to signed 32-bit JS number
-  function signExtend24(op24) {
-    op24 = op24 & 0xffffff;
-    if (op24 & 0x800000) {
-      return (op24 | 0xff000000) | 0; // signed 32-bit
-    }
-    return op24 | 0;
-  }
-
-  // Single-step execution. Returns:
-  //   "HALT" when halted, "ERR:..." on fatal error, undefined otherwise.
-  function step() {
-    const pc = regs.PC >>> 0;
-    if (pc < 0 || pc >= mem.length) {
-      return `ERR: PC out of bounds ${pc}`;
-    }
-
-    const word = readWord(pc);
-    const opcode = word & 0xff;
-    const op24 = (word >>> 8) & 0xffffff;
-    const operand = signExtend24(op24);
-
-    // helpers to advance PC by default
-    const advancePC = () => {
-      regs.PC = (regs.PC + 1) >>> 0;
-    };
-
+  try {
+    // 4. Execute operation
     switch (opcode) {
-      case 0: // ldc: B := A; A := value
-        regs.B = regs.A >>> 0;
-        regs.A = operand >>> 0; // operand is 32-bit signed but store as u32
-        advancePC();
-        return;
-
-      case 1: // adc: A := A + value
-        regs.A = ((regs.A | 0) + (operand | 0)) >>> 0;
-        advancePC();
-        return;
-
-      case 2: // ldl offset: B := A; A := memory[SP + offset]
-      {
-        regs.B = regs.A >>> 0;
-        const addr = (regs.SP + operand) >>> 0;
-        regs.A = parseHexWord(mem[addr] || "0x0") >>> 0;
-        advancePC();
-        return;
-      }
-
-      case 3: // stl offset: memory[SP + offset] := A; A := B;
-      {
-        const addr = (regs.SP + operand) >>> 0;
-        writeWord(addr, regs.A);
-        regs.A = regs.B >>> 0;
-        advancePC();
-        return;
-      }
-
-      case 4: // ldnl offset: A := memory[A + offset];
-      {
-        const addr = (regs.A + operand) >>> 0;
-        regs.A = parseHexWord(mem[addr] || "0x0") >>> 0;
-        advancePC();
-        return;
-      }
-
-      case 5: // stnl offset: memory[A + offset] := B;
-      {
-        const addr = (regs.A + operand) >>> 0;
-        writeWord(addr, regs.B);
-        advancePC();
-        return;
-      }
-
-      case 6: // add: A := B + A;
-        regs.A = ((regs.B | 0) + (regs.A | 0)) >>> 0;
-        advancePC();
-        return;
-
-      case 7: // sub: A := B - A;
-        regs.A = ((regs.B | 0) - (regs.A | 0)) >>> 0;
-        advancePC();
-        return;
-
-      case 8: // shl: A := B << A;
-        // Only low 5 bits are meaningful for shift amount
-        regs.A = ((regs.B << (regs.A & 31)) >>> 0);
-        advancePC();
-        return;
-
-      case 9: // shr: A := B >> A; arithmetic right shift
-        regs.A = (regs.B >> (regs.A & 31)) >>> 0;
-        advancePC();
-        return;
-
-      case 10: // adj value: SP := SP + value;
-        regs.SP = (regs.SP + operand) >>> 0;
-        advancePC();
-        return;
-
-      case 11: // a2sp: SP := A; A := B
-        regs.SP = regs.A >>> 0;
-        regs.A = regs.B >>> 0;
-        advancePC();
-        return;
-
-      case 12: // sp2a: B := A; A := SP;
-        regs.B = regs.A >>> 0;
-        regs.A = regs.SP >>> 0;
-        advancePC();
-        return;
-
-      case 13: // call offset: B := A; A := PC+1; PC := PC + 1 + offset;
-        regs.B = regs.A >>> 0;
-        regs.A = ((regs.PC + 1) >>> 0);
-        regs.PC = (regs.PC + 1 + (operand >>> 0)) >>> 0;
-        return;
-
-      case 14: // return: PC := A; A := B;
-        regs.PC = regs.A >>> 0;
-        regs.A = regs.B >>> 0;
-        return;
-
-      case 15: // brz offset: if A == 0 then PC := PC + 1 + offset
-        if ((regs.A | 0) === 0) {
-          regs.PC = (regs.PC + 1 + (operand >>> 0)) >>> 0;
-        } else {
-          advancePC();
-        }
-        return;
-
-      case 16: // brlz offset: if A < 0 then PC := PC + 1 + offset
-        // signed compare
-        if ((regs.A | 0) < 0) {
-          regs.PC = (regs.PC + 1 + (operand >>> 0)) >>> 0;
-        } else {
-          advancePC();
-        }
-        return;
-
-      case 17: // br offset: PC := PC + 1 + offset
-        regs.PC = (regs.PC + 1 + (operand >>> 0)) >>> 0;
-        return;
-
-      case 18: // HALT
-        return "HALT";
-
+      case 0:  // ldc
+        B = A; A = operand; break;
+      case 1:  // adc
+        A = A + operand; break;
+      case 2:  // ldl
+        B = A; A = readMem(SP + operand); break;
+      case 3:  // stl
+        if (SP + operand < 0 || SP + operand >= memory.length) throw new Error("Memory write out of bounds");
+        newMemory = [...memory];
+        newMemory[SP + operand] = toHex32(A);
+        A = B; 
+        break;
+      case 4:  // ldnl
+        A = readMem(A + operand); break;
+      case 5:  // stnl
+        if (A + operand < 0 || A + operand >= memory.length) throw new Error("Memory write out of bounds");
+        newMemory = [...memory];
+        newMemory[A + operand] = toHex32(B);
+        break;
+      case 6:  // add
+        A = B + A; break;
+      case 7:  // sub
+        A = B - A; break;
+      case 8:  // shl
+        A = B << A; break;
+      case 9:  // shr
+        A = B >> A; break; // Arithmetic shift right
+      case 10: // adj
+        SP = SP + operand; break;
+      case 11: // a2sp
+        SP = A; A = B; break;
+      case 12: // sp2a
+        B = A; A = SP; break;
+      case 13: // call
+        B = A; A = PC; PC = PC + operand; break;
+      case 14: // return
+        PC = A; A = B; break;
+      case 15: // brz
+        if (A === 0) PC = PC + operand; break;
+      case 16: // brlz
+        if (A < 0) PC = PC + operand; break;
+      case 17: // br
+        PC = PC + operand; break;
       default:
-        // unknown opcode: treat as NOP (advance PC)
-        regs.PC = (regs.PC + 1) >>> 0;
-        return;
+        throw new Error(`Unknown opcode: ${opcode}`);
     }
+  } catch (err) {
+    return { error: err.message, halted: true };
   }
 
-  function run(maxSteps = 1000000) {
-    let steps = 0;
-    while (steps < maxSteps) {
-      const r = step();
-      if (r === "HALT") return "HALT";
-      if (typeof r === "string" && r.startsWith("ERR")) return r;
-      steps++;
-    }
-    return "MAX_STEPS";
-  }
+  // 5. Package up the new state
+  const newRegisters = [
+    { name: "A", value: toHex32(A) },
+    { name: "B", value: toHex32(B) },
+    { name: "PC", value: toHex32(PC) },
+    { name: "SP", value: toHex32(SP) }
+  ];
 
-  function reset(newMemory = null, newRegisters = null) {
-    if (Array.isArray(newMemory)) {
-      mem = newMemory.map((m) => toHexStr(parseHexWord(m)));
-    }
-    if (Array.isArray(newRegisters)) {
-      loadRegistersFromArray(newRegisters);
-    }
-  }
-
-  // initialize
-  loadRegistersFromArray(initialRegisters);
-
-  return {
-    step,
-    run,
-    reset,
-    getMemory: () => mem.slice(),
-    getRegisters: () => snapshotRegistersToArray(),
-  };
+  return { halted: false, registers: newRegisters, memory: newMemory, currentPC: PC };
 }

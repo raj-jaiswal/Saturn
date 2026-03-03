@@ -11,6 +11,7 @@ import "./index.css";
 
 import { openFile as fsOpen, saveFile as fsSave, saveFileAs as fsSaveAs } from "./services/file.service";
 import assemble, { buildState } from "./services/assembler.service";
+import { executeStep } from "./services/emulator.service";
 
 function App() {
   const defaultContent = "# write your Simplex assembly here\n";
@@ -22,6 +23,7 @@ function App() {
 
   const [consoleLines, setConsoleLines] = useState(["Welcome to Saturn!", "Layout loaded successfully."]);
   const [assemblyLogs, setAssemblyLogs] = useState([]);
+  const [isHalted, setIsHalted] = useState(false);
 
   const [registers, setRegisters] = useState([
     { name: "A", value: "0x00000000" },
@@ -31,7 +33,7 @@ function App() {
   ]);
 
   // memory: 4096 words initialized to 0x00000000
-  const MEMORY_WORDS = 1024 * 4;
+  const MEMORY_WORDS = 1024 * 16;
   const PAGE_SIZE = 128;
 
   const makeInitialMemory = () =>
@@ -69,6 +71,84 @@ function App() {
       setConsoleLines((c) => [...c, `Opened ${res.path}`]);
       setMode("code");
     }
+  }
+
+  function handleReset() {
+    if (!assemblyResult) return;
+    const machine = buildState(assemblyResult, MEMORY_WORDS);
+    setMemory(machine.memory);
+    setRegisters(machine.registers);
+    setIsHalted(false);
+    setSelectedIndex(0); 
+    setConsoleLines(c => [...c, "Emulator reset."]);
+  }
+
+  function handleStep() {
+    if (isHalted) {
+      setConsoleLines(c => [...c, "Cannot step: Emulator is halted."]);
+      return;
+    }
+
+    const result = executeStep(registers, memory);
+
+    if (result.error) {
+      setConsoleLines(c => [...c, `Runtime Error: ${result.error}`]);
+      setIsHalted(true);
+      return;
+    }
+
+    if (result.halted) {
+      setConsoleLines(c => [...c, "Program Halted cleanly."]);
+      setIsHalted(true);
+      return;
+    }
+
+    setRegisters(result.registers);
+    if (result.memory !== memory) setMemory(result.memory);
+    setSelectedIndex(result.currentPC); // Moves the highlight in the Listing view!
+  }
+
+  function handleRun() {
+    if (isHalted) return;
+    
+    let currentRegs = registers;
+    let currentMem = memory;
+    let halted = false;
+    let stepCount = 0;
+    const MAX_STEPS = 10000; // Safeguard against infinite loops freezing the React UI
+
+    while (!halted && stepCount < MAX_STEPS) {
+      const result = executeStep(currentRegs, currentMem);
+      
+      if (result.error) {
+        setConsoleLines(c => [...c, `Runtime Error: ${result.error}`]);
+        halted = true;
+        break;
+      }
+      
+      if (result.halted) {
+        setConsoleLines(c => [...c, "Program Halted cleanly."]);
+        halted = true;
+        break;
+      }
+
+      currentRegs = result.registers;
+      currentMem = result.memory;
+      stepCount++;
+    }
+
+    // Batch update React state once at the end of the loop
+    setRegisters(currentRegs);
+    setMemory(currentMem);
+    setIsHalted(halted);
+    
+    if (stepCount >= MAX_STEPS) {
+      setConsoleLines(c => [...c, `Execution paused after ${MAX_STEPS} steps to prevent freezing. Check for infinite loop`]);
+    }
+
+    // Update highlight to wherever it stopped
+    const finalPCInt = parseInt(currentRegs.find(r => r.name === "PC").value, 16);
+    setSelectedIndex(finalPCInt);
   }
 
   async function handleSave() {
@@ -349,6 +429,10 @@ function App() {
     };
   }, []);
 
+  const pcReg = registers.find((r) => r.name === "PC");
+  const currentPC = pcReg ? parseInt(pcReg.value, 16) : null;
+  const hasErrors = assemblyResult?.errors?.length > 0;
+
   const appStyle = { backgroundColor: "var(--bg)", color: "var(--muted)" };
 
   return (
@@ -361,6 +445,10 @@ function App() {
         isDirty={isDirty}
         mode={mode}
         toggleMode={toggleMode}
+        onRun={handleRun}
+        onStep={handleStep}
+        onReset={handleReset}
+        hasErrors={hasErrors}
       />
 
       <div className="flex flex-1 min-h-0 p-4 gap-4">
@@ -377,6 +465,7 @@ function App() {
                 errors={assemblyResult?.errors || []}
                 selectedIndex={selectedIndex}
                 setSelectedIndex={setSelectedIndex}
+                pc={currentPC}
               />
             )}
           </div>
