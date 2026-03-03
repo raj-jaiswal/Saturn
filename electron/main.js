@@ -2,9 +2,71 @@ import { app, BrowserWindow, ipcMain, dialog, Menu, shell } from "electron";
 import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs/promises";
+import assemble from "../src/services/assembler.service.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+async function runHeadlessAssemble(filePath) {
+  try {
+    const src = await fs.readFile(filePath, "utf-8");
+    const result = assemble(src);
+
+    const base = path.basename(filePath, path.extname(filePath));
+    const dir = path.dirname(filePath);
+
+    const lpath = path.join(dir, base + ".l");
+    const opath = path.join(dir, base + ".o");
+    const logpath = path.join(dir, base + ".log");
+
+    // Listing
+    const lines = (result.words || []).map((w) => {
+      const addr = w.address.toString(16).padStart(4, "0");
+      return `${addr}  ${w.hex}   ${w.text}`;
+    });
+
+    await fs.writeFile(lpath, lines.join("\n"), "utf-8");
+
+    // Object
+    const buffer = Buffer.alloc((result.words || []).length * 4);
+    (result.words || []).forEach((w, i) => {
+      const val = parseInt(w.hex, 16) >>> 0;
+      buffer.writeUInt32LE(val, i * 4);
+    });
+
+    await fs.writeFile(opath, buffer);
+
+    // Logs
+    const logs = [];
+    logs.push("=== Assemble output ===");
+
+    if (result.errors?.length) {
+      logs.push("ERRORS:");
+      result.errors.forEach(e => logs.push(`ERR: ${e}`));
+    }
+
+    if (result.warnings?.length) {
+      logs.push("--- warnings ---");
+      result.warnings.forEach(w => logs.push(`WARN: ${w}`));
+    }
+
+    logs.push("--- labels ---");
+    Object.keys(result.labels || {}).forEach(k => {
+      const v = result.labels[k];
+      logs.push(`${k} : ${v}`);
+    });
+
+    if (!result.errors?.length) logs.push("Program assembled.");
+
+    await fs.writeFile(logpath, logs.join("\n"), "utf-8");
+
+    console.log(`Wrote:\n\t${lpath}\n\t${opath}\n\t${logpath}`);
+  } catch (err) {
+    console.error("Failed:", err.message || err);
+  }
+
+  app.exit();
+}
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -121,7 +183,34 @@ function createMenu(win) {
   Menu.setApplicationMenu(menu);
 }
 
-app.whenReady().then(createWindow);
+app.whenReady().then(async () => {
+  const args = process.argv.slice(1);
+
+  if (args.includes("--help") || args.includes("-h")) {
+    console.log(`saturn - Simplex assembler tool
+
+Usage:
+  saturn <file.asm>            assemble file, produces .o, .l, .log
+  saturn --open=<file.asm>     open file in GUI
+  saturn --import=<file.o>     open object file in GUI
+  saturn --help                show this help
+`);
+    app.exit();
+    return;
+  }
+
+  // If plain .asm without --open → headless assemble
+  const plainAsm = args.find(a => a.endsWith(".asm"));
+  const hasOpenFlag = args.some(a => a.startsWith("--open="));
+
+  if (plainAsm && !hasOpenFlag) {
+    await runHeadlessAssemble(path.resolve(plainAsm));
+    return;
+  }
+
+  // Otherwise open GUI
+  createWindow();
+});
 
 // ------------------ File dialog / FS handlers (unchanged) ------------------
 ipcMain.handle("dialog:openFile", async () => {

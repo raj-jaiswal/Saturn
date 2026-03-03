@@ -14,13 +14,37 @@
       "dist/**/*",
       "electron/**/*"
     ],
+    "extraResources": [],
     "win": {
-      "target": "nsis",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
       "icon": "build/icon.ico"
-    }
-  },
-  "bin": {
-    "saturn": "bin/saturn.js"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": true,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "include": "build/installer.nsh"
+    },
+    "fileAssociations": [
+      {
+        "ext": "asm",
+        "name": "Simplex Assembly File",
+        "role": "Editor"
+      },
+      {
+        "ext": "o",
+        "name": "Simplex Object File",
+        "role": "Editor"
+      }
+    ]
   },
   "scripts": {
     "dev": "vite",
