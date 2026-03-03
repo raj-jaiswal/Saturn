@@ -2,7 +2,7 @@ import { app, BrowserWindow, ipcMain, dialog, Menu, shell } from "electron";
 import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs/promises";
-import assemble from "../src/services/assembler.service.js";
+import assemble from "./assembler.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
