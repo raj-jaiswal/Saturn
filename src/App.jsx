@@ -318,6 +318,37 @@ function App() {
     window.electronAPI?.setListingMode(false);
   }, []);
 
+  useEffect(() => {
+    if (!window.electronAPI) return;
+
+    const remove1 = window.electronAPI.onCLIOpenFile((filePath) => {
+      // read file via electronAPI.readFile and set content then open editor / assemble
+      window.electronAPI.readFile(filePath).then(content => {
+        setContent(content);
+        setFilePath(filePath);
+        setMode("code");
+      });
+    });
+
+    const remove2 = window.electronAPI.onCLIImportObject((filePath) => {
+      // ask main to import object file (we created import handler earlier)
+      window.electronAPI.importObject(filePath).then((result) => {
+        if (!result || result.error) {
+          setConsoleLines(c => [...c, "Invalid File"]);
+          return;
+        }
+        setAssemblyResult({ words: result.words, warnings: [], errors: [], labels: {} });
+        setMode("listing");
+        window.electronAPI.setListingMode(true);
+      });
+    });
+
+    return () => {
+      remove1 && remove1();
+      remove2 && remove2();
+    };
+  }, []);
+
   const appStyle = { backgroundColor: "var(--bg)", color: "var(--muted)" };
 
   return (

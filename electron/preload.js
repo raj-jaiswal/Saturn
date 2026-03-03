@@ -38,6 +38,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   exportListing: (data) => ipcRenderer.invoke("export:listing", data),
   exportLogs: (data) => ipcRenderer.invoke("export:logs", data),
   importObject: () => ipcRenderer.invoke("import:object"),
+  importObjectFile: (path) => ipcRenderer.invoke("import:object-from-path", path),
+  openSourceFile: (path) => ipcRenderer.invoke("open:source-from-path", path),
   
   setListingMode: (isListing) =>
     ipcRenderer.send("app:setListingMode", isListing),
@@ -58,5 +60,13 @@ contextBridge.exposeInMainWorld("electronAPI", {
   onMenuImportObject: (cb) => {
     ipcRenderer.on("menu:importObject", cb);
     return () => ipcRenderer.removeListener("menu:importObject", cb);
+  },
+  onCLIOpenFile: (cb) => {
+    ipcRenderer.on("cli:open-file", (evt, filepath) => cb(filepath));
+    return () => ipcRenderer.removeListener("cli:open-file", cb);
+  },
+  onCLIImportObject: (cb) => {
+    ipcRenderer.on("cli:import-object", (evt, filepath) => cb(filepath));
+    return () => ipcRenderer.removeListener("cli:import-object", cb);
   },
 });

@@ -32,6 +32,31 @@ function createWindow() {
     win.webContents.send("app:close");
   });
   createMenu(win);
+
+  const pendingArgs = process.argv.slice(1); // packaged executables include exec + exe path; adjust as needed
+
+  // simple parser: support --open=path or --import=path or plain file path
+  for (const a of pendingArgs) {
+    if (!a) continue;
+    if (a.startsWith("--open=")) {
+      const file = a.slice("--open=".length);
+      win.webContents.once("did-finish-load", () => {
+        win.webContents.send("cli:open-file", file);
+      });
+    } else if (a.startsWith("--import=")) {
+      const file = a.slice("--import=".length);
+      win.webContents.once("did-finish-load", () => {
+        win.webContents.send("cli:import-object", file);
+      });
+    } else if (a.endsWith(".asm") || a.endsWith(".o")) {
+      // treat plain file path as open/import based on extension
+      const file = a;
+      win.webContents.once("did-finish-load", () => {
+        if (file.endsWith(".asm")) win.webContents.send("cli:open-file", file);
+        else win.webContents.send("cli:import-object", file);
+      });
+    }
+  }
 }
 
 function createMenu(win) {

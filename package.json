@@ -19,6 +19,9 @@
       "icon": "build/icon.ico"
     }
   },
+  "bin": {
+    "saturn": "bin/saturn.js"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
