@@ -1,342 +1,373 @@
-# Saturn --- SIMPLEX Assembler & Emulator (Electron + React)
 
-Saturn is a desktop IDE, assembler, and emulator for the **Extended
-SIMPLEX Instruction Set Architecture (ISA)**.
+# Saturn - SIMPLEX Assembler & Emulator (Electron + React)
 
-It provides: - A GUI IDE for writing and debugging SIMPLEX assembly
-programs - A two‑pass assembler - A step-by-step emulator - A command
-line interface (CLI) - Export/import of object files
+[![Release](https://img.shields.io/badge/release-v1.0-blue)](https://github.com/raj-jaiswal/Saturn/releases/tag/release) ![License: MIT](https://img.shields.io/badge/license-MIT-green)
 
-Release download:
+Desktop IDE, two‑pass assembler and step‑by‑step emulator for the **Extended SIMPLEX** Instruction Set Architecture (ISA). Built with **Electron + React + Vite + TailwindCSS**.  
+
+Provides a GUI IDE and a CLI for assembling, inspecting and executing SIMPLEX assembly programs.
+
+---
+
+## Table of Contents
+
+1. [Quick links](#quick-links)  
+2. [Project status & summary](#project-status--summary)  
+3. [Download / Release](#download--release)  
+4. [Authors & Authorship Declaration](#authors--authorship-declaration)  
+5. [Repository structure (visual tree)](#repository-structure-visual-tree)  
+6. [Features (detailed)](#features-detailed)  
+7. [Instruction Set & ISA details](#instruction-set--isa-details)  
+8. [File formats](#file-formats)  
+9. [Usage - GUI and CLI (for users)](#usage---gui-and-cli-for-users)  
+10. [Development - how to run locally](#development---how-to-run-locally)  
+11. [Build & Packaging (production)](#build--packaging-production)  
+12. [Emulator behavior & implementation notes](#emulator-behavior--implementation-notes)  
+13. [Examples & sample workflows](#examples--sample-workflows)  
+14. [Troubleshooting & tips](#troubleshooting--tips)  
+15. [Contributing](#contributing)  
+16. [Roadmap / Future work](#roadmap--future-work)  
+17. [License](#license)  
+18. [Contact / Issues](#contact--issues)
+
+---
+
+## Releases
+
+- Release (Windows Setup): https://github.com/raj-jaiswal/Saturn/releases/tag/release
+
+---
+
+## Project status & summary
+
+**What Saturn does:**
+
+- Provide an editor with assemble/run/step/reset controls.  
+- Implement a two-pass assembler for Extended SIMPLEX ISA with labels, `SET`, `data`, and relative branch encoding.  
+- Provide an emulator that executes assembled words, with live register and memory updates.  
+- Offer CLI entry (`saturn`) for headless assembly and for launching GUI with files loaded.  
+- Export object `.o`, listing `.l`, and log `.log` files.
+
+---
+
+## Download / Release
+
+Download the Windows installer from the release page:
 https://github.com/raj-jaiswal/Saturn/releases/tag/release
 
-------------------------------------------------------------------------
+---
 
-# Author
+## Authors & Authorship Declaration
 
-Divya Swaroop Jaiswal\
-2401CS38
+**Author:** Divya Swaroop Jaiswal  
+**Roll Numbr:** `2401CS38`
 
-------------------------------------------------------------------------
+**Declaration of authorship (required):**  
+I, **Divya Swaroop Jaiswal (2401CS38)**, declare that I am the author of this project and repository. All code, design and documentation in this repository represent my own work unless external libraries are explicitly used and cited. 
 
-# Declaration of Authorship
+I grant permission for the project to be used for educational purposes under the MIT License included in this repo.
 
-I declare that this project was developed by me as part of academic
-work.\
-All implementation, design, and documentation included in this
-repository represent my own work except where external libraries are
-used and credited.
+---
 
-Author: Divya Swaroop Jaiswal\
-ID: 2401CS38
+## Repository structure (visual tree)
 
-------------------------------------------------------------------------
-
-# Features
-
-Saturn provides a complete SIMPLEX development environment.
-
-Main capabilities:
-
-• Two-pass assembler\
-• Emulator with Run / Step / Reset\
-• GUI code editor\
-• Program listing viewer\
-• Register inspector (A, B, PC, SP)\
-• Memory viewer\
-• Console output logs\
-• CLI support\
-• Object file import/export\
-• Listing file export\
-• Assembly logs
-
-------------------------------------------------------------------------
-
-# Architecture
-
-Saturn uses an Electron + React architecture.
-
-Electron Main Process \| \| IPC \| Renderer (React UI) \| Assembler
-Service \| Emulator Service
-
-Technologies:
-
-Electron\
-React\
-Vite\
-TailwindCSS\
-electron-builder
-
-------------------------------------------------------------------------
-
-# Repository Structure
-
+```
 root/
+├── package.json
+├── vite.config.js              # Vite + build configuration
+├── LICENSE                     # MIT license
+├── .gitignore
+├── electron/
+│   ├── main.js                 # Electron main process
+│   └── preload.js              
+├── src/
+│   ├── app.jsx                 # Main React App
+│   ├── main.jsx               
+│   ├── index.css               
+│   ├── app.css            
+│   ├── components/             # React UI components used in the app
+│   │   ├── Console.jsx         # Console log panel
+│   │   ├── Listing.jsx         # Listing view to show assembled words
+│   │   ├── Registers.jsx       # Registers UI and editors
+│   │   ├── Memory.jsx          # Memory inspector & editor
+│   │   ├── Taskbar.jsx         # Top controls: Open, Save, Assemble, Run, Step, Reset
+│   │   └── TextEditor.jsx      # Source editor (basic textarea)
+│   └── services/               # utilities
+│       ├── file.service.js     # File open/save wrappers (Electron API)
+│       └── emulator.service.js # Emulator implementation (step/run/reset)
+├── shared/
+│   └── assembler.js            # Two-pass assembler | pass1: label collection, pass2: word encoding
+├── build/                      # build assets
+│   ├── icon.ico
+│   └── installer.nsh
+└── README.md                   
+```
 
-configuration files - package.json - vite.config.js - LICENSE (MIT) -
-.gitignore
+---
 
-electron/ - main.js - preload.js
+## Features (detailed)
 
-src/ - app.jsx - main.jsx - index.css - app.css
+### Editor & UI
+- Simple, lightweight code editor (TextEditor) that supports saving and opening files.  
+- Code / Listing toggle - write source in Code, inspect assembled words in Listing.  
+- Taskbar includes: Open, Save, Assemble, Toggle Code/Listing, Export Binary/Listing/Logs, Import Object.  
 
-src/components/ - console.jsx - listing.jsx - registers.jsx -
-memory.jsx - taskbar.jsx - textEditor.jsx
+### Assembler
+- Two-pass assembler to resolve labels and `SET` directives.  
+- Numeric formats: decimal, hex (`0x`), octal (leading `0`).  
+- Label syntax: alphanumeric starting with a letter.  
+- Emits warnings: unused labels, possible infinite loops (backward branches with no escape).  
+- Emits errors: duplicate labels, undefined label uses, invalid numbers, missing operands.
 
-src/services/ - file.service.js - emulator.service.js
+### Emulator
+- Accurate semantics for Extended SIMPLEX instructions (see ISA section).  
+- Exposes `createEmulator` interface with `step()`, `run()`, `reset()`, and `snapshot()` helpers.  
+- Callbacks to update UI: `onRegisters`, `onMemory`, `onConsole`.  
+- Runs until `halt` or a configurable step limit;
+- Safe bounds checks for memory and PC.
 
-shared/ - assembler.js
+### Exports & Imports
+- `.o` - object binary (32-bit little-endian words)  
+- `.l` - textual listing (address, hex, source, line)  
+- `.log` - assembler log (errors/warnings/labels)  
 
-------------------------------------------------------------------------
+Import `.o` into Listing mode to inspect and run prebuilt binaries
 
-# ISA Overview
+### CLI Integration
+- `saturn file.asm` - assemble file and produce `.o`, `.l`, `.log`.  
+- `saturn --open=file.asm` - open GUI with file loaded.  
+- `saturn --import=file.o` - open GUI and import object file.  
+- `saturn --help` - CLI usage help.  
+- CLI shares same assembler core (`shared/assembler.js`) as GUI.
 
-The SIMPLEX machine contains four 32-bit registers:
+---
 
-A --- accumulator\
-B --- secondary register\
-PC --- program counter\
-SP --- stack pointer
+## Instruction Set & ISA details
 
-Instruction encoding:
+**Registers:** `A`, `B`, `PC`, `SP` - each 32-bit signed two's complement integers.  
+**Encoding:** 32-bit word: lower 8 bits = opcode, upper 24 bits = operand (signed two's complement).  
+For relative branches: assembler stores `labelAddr - (currentAddr + 1)` so PC semantics line up with emulator.
 
-32 bit word
+### Permitted line forms & commenting rules
+- One statement per line.  
+- Comments start with `;` or `#` and continue to end-of-line.  
+- Blank lines allowed.  
+- Labels: `name:` optionally followed by instruction on same line.  
+- Valid label names: `[A-Za-z][A-Za-z0-9]*`.
 
-Upper 24 bits → operand\
-Lower 8 bits → opcode
+### Numeric formats
+- Decimal: `42`  
+- Hexadecimal: `0x2A` or `-0x2A`  
+- Octal: `052` (leading `0`)
 
-Operands are signed two's complement values.
+### Complete instruction table
 
-------------------------------------------------------------------------
+| Mnemonic | Opcode | Operand | Effect / Formal semantics |
+|---------:|:------:|:-------:|:--------------------------|
+| `data`   |       | value   | Reserve memory word with `value` |
+| `ldc`    | 0      | value   | `B := A; A := value;` |
+| `adc`    | 1      | value   | `A := A + value;` |
+| `ldl`    | 2      | offset  | `B := A; A := memory[SP + offset];` |
+| `stl`    | 3      | offset  | `memory[SP + offset] := A; A := B;` |
+| `ldnl`   | 4      | offset  | `A := memory[A + offset];` |
+| `stnl`   | 5      | offset  | `memory[A + offset] := B;` |
+| `add`    | 6      | -       | `A := B + A;` |
+| `sub`    | 7      | -       | `A := B − A;` |
+| `shl`    | 8      | -       | `A := B << A;` (use low 5 bits of A) |
+| `shr`    | 9      | -       | `A := B >>> A;` (logical right shift) |
+| `adj`    | 10     | value   | `SP := SP + value;` |
+| `a2sp`   | 11     | -       | `SP := A; A := B;` |
+| `sp2a`   | 12     | -       | `B := A; A := SP;` |
+| `call`   | 13     | offset  | `B := A; A := PC; PC := PC + offset;` |
+| `return` | 14     | -       | `PC := A; A := B;` |
+| `brz`    | 15     | offset  | `if A == 0 then PC := PC + offset;` |
+| `brlz`   | 16     | offset  | `if A < 0 then PC := PC + offset;` |
+| `br`     | 17     | offset  | `PC := PC + offset;` |
+| `halt`   | 18     | -       | Stop execution (emulator halts) |
+| `SET`    |       | value   | Assembler directive - set label = value (label must precede SET) |
 
-# Assembly Language Rules
+> Notes: `data` and `SET` are assembler directives (not machine opcodes). Branch operands use signed 24-bit displacement
+Assembler sign-extends accordingly.
 
-The assembly language is line based.
+---
 
-One statement per line.
+## File formats (detailed)
 
-Comments begin with:
+**Object file (.o)**  
+- Binary file containing consecutive 32-bit little-endian words (one word per assembled source word). Use this to import into GUI.
 
-; comment
+**Listing file (.l)**  
+- Plain text file. Columns typically: `address` | `hex` | `source` | `line number` | `messages` (WARN/ERR). Useful for inspection.
 
-Whitespace is ignored.
+**Log file (.log)**  
+- Human readable assembler output listing errors and warnings and the label map.
 
-Blank lines are allowed.
+---
 
-Labels:
+## Usage - GUI and CLI (for users)
 
-label:
+### GUI (recommended):
+1. Install `Saturn Setup <version>.exe`.  
+2. Launch from Start Menu or Desktop shortcut.  
+3. Create / Open `.asm` file.  
+4. Click **Assemble**. If there are errors the console will show them.  
+5. Switch to **Listing** view to inspect machine words.  
+6. Use **Run**, **Step**, and **Restart** buttons in Taskbar to execute program.  
+7. Export `.o`, `.l`, or `.log` via Taskbar / Menu as needed.
 
-Label names must:
+### CLI (headless / automation):
 
-• start with a letter\
-• contain alphanumeric characters
-
-Operands may be:
-
-• decimal numbers • hexadecimal numbers (0x) • octal numbers (leading 0)
-• labels
-
-Example valid lines:
-
-; a comment label1: ldc 5 label2: ldc 5 adc 5 label3:ldc label3
-
-------------------------------------------------------------------------
-
-# Instruction Set
-
-data value\
-Reserve memory location with initial value
-
-ldc value\
-B := A\
-A := value
-
-adc value\
-A := A + value
-
-ldl offset\
-B := A\
-A := memory\[SP + offset\]
-
-stl offset\
-memory\[SP + offset\] := A\
-A := B
-
-ldnl offset\
-A := memory\[A + offset\]
-
-stnl offset\
-memory\[A + offset\] := B
-
-add\
-A := B + A
-
-sub\
-A := B − A
-
-shl\
-A := B \<\< A
-
-shr\
-A := B \>\> A
-
-adj value\
-SP := SP + value
-
-a2sp\
-SP := A\
-A := B
-
-sp2a\
-B := A\
-A := SP
-
-call offset\
-B := A\
-A := PC\
-PC := PC + offset
-
-return\
-PC := A\
-A := B
-
-brz offset\
-if A == 0\
-PC := PC + offset
-
-brlz offset\
-if A \< 0\
-PC := PC + offset
-
-br offset\
-PC := PC + offset
-
-halt\
-Stop execution
-
-SET value\
-Assign constant value to label
-
-------------------------------------------------------------------------
-
-# Using Saturn (User)
-
-After installing Saturn you can use it either through the GUI or CLI.
-
-CLI examples:
-
-saturn --help
-
+```bash
+# Assemble source -> produces file.o, file.l, file.log
 saturn file.asm
 
-saturn file.o
-
+# Assemble and open GUI with file loaded
 saturn --open=file.asm
 
+# Import binary object into GUI listing
 saturn --import=file.o
 
-saturn file.asm assembles the program and generates:
+# Display help
+saturn --help
+```
 
-file.o\
-file.l\
-file.log
+> If `saturn` is not available in PATH after install, either reinstall with PATH option or run the installed binary from its installation folder.
 
-------------------------------------------------------------------------
+---
 
-# Running the GUI
+## Development - how to run locally
 
-Launch Saturn from:
+### Prerequisites
+- Node.js (>=18 recommended)  
+- npm  
+- Windows (for building Windows installer - dev UI works cross-platform)
 
-Start Menu\
-Desktop shortcut
+### Install dependencies
 
-Workflow:
-
-1.  Open or create assembly file
-2.  Click Assemble
-3.  View listing
-4.  Run / Step execution
-5.  Inspect registers and memory
-
-------------------------------------------------------------------------
-
-# Developer Setup
-
-Install dependencies:
-
+```bash
 npm install
+```
 
-Start Vite dev server:
+### Start development server + Electron (two terminals)
 
+Terminal 1 - start Vite (renderer dev server):
+
+```bash
 npm run dev
+# or: npx vite
+```
 
-Run Electron in another terminal:
+Terminal 2 - start Electron main process (loads dev server):
 
+```bash
 npm run electron
+# or: npx electron . --open=path/to/file.asm
+# or: npx electron . --import=path/to/file.o
+```
 
-Alternative development launch:
+**Notes:**  
+- `npm run dev` runs Vite with HMR so editing React components reloads the UI.  
+- `npm run electron` runs Electron pointing at the dev URL from Vite. Keep both terminals open while you develop.
 
-npx electron . --open=file.asm
+### Useful developer commands
 
-npx electron . --import=file.o
+```bash
+npm run lint          # run eslint
+npm run build         # produce production optimized `dist/`
+npm run export        # build + package (runs `npm run build && electron-builder`)
+```
 
-------------------------------------------------------------------------
+---
 
-# Building the Application
+## Build & Packaging (production)
 
-Production build:
+### Single command packaging
 
+```bash
 npm run export
+# runs: npm run build && electron-builder
+```
 
-This runs:
+### Output
+`release/` will contain the installer (e.g. `Saturn Setup x.y.z.exe`) and internal artifacts.
 
-npm run build electron-builder
+### Packing tips (already applied to the repo)
+- `asar: true` to compress application files.  
+- Exclude source maps, tests, docs, large unused locales to reduce installer size.  
+- Use `compression: "maximum"` in `build` config to compress the installer.
 
-The installer will appear in:
+---
 
-release/
+## Emulator behavior & implementation notes
 
-Users only need the Setup executable.
+- **PC increment**: The emulator increments PC *before* executing an instruction - assembler's relative branch encoding uses this convention (`offset = target - (PC + 1)`).  
+- **Sign extension**: 24-bit operand fields are sign-extended to 32-bit signed integers before use.  
+- **Memory format**: UI displays memory words as `0xXXXXXXXX` hex strings; internal emulator uses 32-bit signed ints for arithmetic.  
+- **Stack & addressing**: `ldl` / `stl` use `SP + offset`. `ldnl` / `stnl` use `A + offset`.  
+- **Call/return**: `call` stores the return PC into `A` and uses `B` as a temporary. `return` restores PC from `A` and `A` from `B`.  
+- **Safety**: Emulator performs bounds checks on memory/PC and halts with an error message if out-of-bounds memory access is attempted.
 
-------------------------------------------------------------------------
+---
 
-# File Types
+## Examples & sample workflows
 
-.asm --- assembly source code\
-.o --- object file (binary machine code)\
-.l --- listing file\
-.log --- assembly log
+### Sample assembly fragment
 
-------------------------------------------------------------------------
+```asm
+; sample.asm
+start:  ldc 5
+        ldc 10
+        add
+        halt
+```
 
-# Emulator
+Assemble and run the above using the GUI or CLI. Inspect the listing to see the hex words and use Step to see register changes.
 
-The emulator executes instructions and updates:
+---
 
-Registers\
-Memory\
-Program counter
+## Troubleshooting & tips
 
-Execution modes:
+- **Installer too large**: Ensure `asar: true`, remove source maps (`!**/*.map`) and exclude unnecessary node modules or locale files.  
+- **App won't start after packaging**: Verify `app.asar` exists under `release/win-unpacked/resources/`. If you see an `app/` folder instead, ASAR wasn't produced.  
+- **Stale UI values**: Ensure emulator callbacks provide new arrays/objects (avoid mutating previous arrays in-place; use `slice()` or new objects).  
+- **CLI not in PATH**: Re-run installer with PATH option enabled or add the install directory to PATH manually.  
+- **Debugging packaging issues**: Inspect `builder-debug.yml` created by electron-builder for details on packaging steps.
 
-Run --- execute entire program\
-Step --- execute single instruction\
-Reset --- restore initial state
+---
 
-------------------------------------------------------------------------
+## Contributing
 
-# License
+Contributions are welcome. Suggested workflow:
 
-MIT License
+1. Fork the repository  
+2. Create a feature branch (`git checkout -b feat/your-feature`)  
+3. Implement code and tests, update README if needed  
+4. Run `npm run lint`, `npm run build` and manual testing in the UI  
+5. Open a PR and describe the change, include screenshots if UI changed
 
-See LICENSE file.
+Please follow the code style used in the repository.
 
-------------------------------------------------------------------------
+---
 
-# Acknowledgements
+## Roadmap / Future work
 
-Electron\
-React\
-Vite\
-TailwindCSS
+- Syntax highlighting using Monaco or CodeMirror for editor  
+- Breakpoints & conditional stepping in emulator  
+- Disassembler to reconstruct source from `.o` files  
+- Cross-platform installers (macOS DMG, Linux AppImage)  
+- Better UI themes, accessibility improvements
+
+---
+
+## License
+
+This repository is licensed under the **MIT License**. See `LICENSE` for details.
+
+---
+
+## Contact / Issues
+
+Open issues or feature requests at the project GitHub:  
+https://github.com/raj-jaiswal/Saturn/issues
+
+---
