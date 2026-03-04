@@ -10,7 +10,7 @@ import "./App.css";
 import "./index.css";
 
 import { openFile as fsOpen, saveFile as fsSave, saveFileAs as fsSaveAs } from "./services/file.service";
-import assemble, { buildState } from "./services/assembler.service";
+import assemble, { buildState } from "../shared/assember";
 import { executeStep } from "./services/emulator.service";
 
 function App() {

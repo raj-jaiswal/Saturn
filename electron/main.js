@@ -2,12 +2,12 @@ import { app, BrowserWindow, ipcMain, dialog, Menu, shell } from "electron";
 import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs/promises";
-import assemble from "./assembler.js";
+import assemble from "../shared/assember.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-async function runHeadlessAssemble(filePath) {
+async function runAssemble(filePath) {
   try {
     const src = await fs.readFile(filePath, "utf-8");
     const result = assemble(src);
@@ -22,7 +22,7 @@ async function runHeadlessAssemble(filePath) {
     // Listing
     const lines = (result.words || []).map((w) => {
       const addr = w.address.toString(16).padStart(4, "0");
-      return `${addr}  ${w.hex}   ${w.text}`;
+      return `${addr}\t${w.hex}\t\t${w.text}`;
     });
 
     await fs.writeFile(lpath, lines.join("\n"), "utf-8");
@@ -78,6 +78,7 @@ function createWindow() {
       nodeIntegration: false,
     },
     icon: path.join(__dirname, "./logo.png"),
+    backgroundColor: "#181818"
   });
 
   if (!app.isPackaged) {
@@ -164,7 +165,7 @@ function createMenu(win) {
     },
     {
       label: "View",
-      submenu: [{ role: "toggleDevTools" }, { role: "reload" }, { type: "separator" }, { role: "resetZoom" }, { role: "zoomIn" }, { role: "zoomOut" }, { role: "togglefullscreen" }],
+      submenu: [{ role: "reload" }, { type: "separator" }, { role: "resetZoom" }, { role: "zoomIn" }, { role: "zoomOut" }, { role: "togglefullscreen" }],
     },
     {
       label: "Help",
@@ -204,7 +205,7 @@ Usage:
   const hasOpenFlag = args.some(a => a.startsWith("--open="));
 
   if (plainAsm && !hasOpenFlag) {
-    await runHeadlessAssemble(path.resolve(plainAsm));
+    await runAssemble(path.resolve(plainAsm));
     return;
   }
 
