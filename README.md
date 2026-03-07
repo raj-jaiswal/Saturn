@@ -55,6 +55,12 @@ Provides a GUI IDE and a CLI for assembling, inspecting and executing SIMPLEX as
 Download the Windows installer from the release page:
 https://github.com/raj-jaiswal/Saturn/releases/tag/release
 
+>Windows Defender may show a warning because Saturn is not digitally signed.\
+Click:
+More Info, Run Anyway \
+Installation may pause near completion while Windows scans the application.
+This is normal and may take several minutes on slower systems.
+
 ---
 
 ## Authors & Authorship Declaration
