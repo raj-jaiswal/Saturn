@@ -4,6 +4,12 @@
   "version": "1.0.0",
   "type": "module",
   "main": "electron/main.js",
+  "author": "Divya Swaroop Jaiswal",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/saturn"
+  },
   "build": {
     "appId": "com.saturn.app",
     "productName": "Saturn",

@@ -1,3 +1,12 @@
+// Author: Divya Swaroop Jaiswal  
+// Roll Number: 2401CS38
+
+// Declaration of authorship:  
+// I, Divya Swaroop Jaiswal, declare that I am the author of this 
+// project and repository. All code, design and documentation in 
+// this repository represent my own work unless external libraries
+// are explicitly used and cited. 
+
 import React, { useState, useEffect } from "react";
 
 export default function Memory({ memory = [], pageSize = 128, onUpdateMemory = () => {} }) {
