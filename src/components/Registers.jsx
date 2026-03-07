@@ -4,6 +4,7 @@ export default function Registers({ registers = [], onUpdateRegister = () => {} 
   const [editing, setEditing] = useState(null);
   const [tempValue, setTempValue] = useState("");
 
+  // Remove all whitespace, invalid character, and take last 8 valid characters, pad with 0s on right
   function normalizeHex(val) {
     if (!val) return null;
     let v = String(val).trim();

@@ -1,3 +1,12 @@
+// Author: Divya Swaroop Jaiswal  
+// Roll Number: 2401CS38
+
+// Declaration of authorship:  
+// I, Divya Swaroop Jaiswal, declare that I am the author of this 
+// project and repository. All code, design and documentation in 
+// this repository represent my own work unless external libraries
+// are explicitly used and cited. 
+
 const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("electronAPI", {
@@ -61,6 +70,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.on("menu:importObject", cb);
     return () => ipcRenderer.removeListener("menu:importObject", cb);
   },
+
+  // CLI listeners
   onCLIOpenFile: (cb) => {
     ipcRenderer.on("cli:open-file", (evt, filepath) => cb(filepath));
     return () => ipcRenderer.removeListener("cli:open-file", cb);

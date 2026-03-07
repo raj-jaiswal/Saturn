@@ -1,3 +1,12 @@
+// Author: Divya Swaroop Jaiswal  
+// Roll Number: 2401CS38
+
+// Declaration of authorship:  
+// I, Divya Swaroop Jaiswal, declare that I am the author of this 
+// project and repository. All code, design and documentation in 
+// this repository represent my own work unless external libraries
+// are explicitly used and cited. 
+
 const OPCODES = {
   ldc: 0,
   adc: 1,
@@ -66,14 +75,14 @@ export default function assemble(source) {
   const usedLabels = new Set();
   const lines = source.split(/\r?\n/);
 
-  /* ---------------- PASS 1 ---------------- */
+  // ---------------- PASS 1 ----------------
   let address = 0;
 
   for (let i = 0; i < lines.length; i++) {
     let line = lines[i].replace(/(;|#).*$/, "").trim();
     if (!line) continue;
 
-    // check if label
+    // check if label exists
     let labelMatch = line.match(/^([^:\s]+):\s*(.*)$/);
     if (labelMatch) {
       const labelName = labelMatch[1];
@@ -89,6 +98,7 @@ export default function assemble(source) {
 
       if (!rest) continue; // label-only line
 
+      // Set Instruction Handling
       if (rest.toLowerCase().startsWith("set ")) {
         const valueText = rest.slice(4).trim();
         const num = parseNumber(valueText);
@@ -96,7 +106,7 @@ export default function assemble(source) {
           errors.push(`Line ${i+1}: invalid SET value`);
         else
           labels[labelName] = num;
-        continue;
+        continue;             // Not incrweasing address here, since Set is Pseudoinstruction
       }
 
       address++;
@@ -109,14 +119,14 @@ export default function assemble(source) {
     address++;
   }
 
-  /* ---------------- PASS 2 ---------------- */
+  // ---------------- PASS 2 ---------------- 
 
   address = 0;
   const words = [];
 
   for (let i = 0; i < lines.length; i++) {
     let raw = lines[i];
-    let line = raw.replace(/(;|#).*$/, "").trim();
+    let line = raw.replace(/(;|#).*$/, "").trim();    // Removing all comments
     if (!line) continue;
 
     // remove leading label if exists
@@ -161,26 +171,28 @@ export default function assemble(source) {
 
     /* Operand checks */
     const needsOp = need_operand.has(mnemonic);
-    const forbidsOp = no_operand.has(mnemonic);
+    const noOp = no_operand.has(mnemonic);
     const hasOperand = operandText.length > 0;
 
     if (needsOp && !hasOperand)
       errors.push(`Line ${i+1}: missing operand`);
 
-    if (forbidsOp && hasOperand)
+    if (noOp && hasOperand)
       errors.push(`Line ${i+1}: unexpected operand`);
 
     let operandValue = 0;
 
     if (hasOperand) {
-      const num = parseNumber(operandText);
+      const num = parseNumber(operandText);             // Check if operand is a value
 
       if (num !== null) {
         operandValue = num;
-      } else {
-        if (!labels.hasOwnProperty(operandText)) {
+      }
+      else {
+        if (!labels.hasOwnProperty(operandText)) {      // Check if operant is a label
           errors.push(`Line ${i+1}: undefined label '${operandText}'`);
-        } else {
+        } 
+        else {
           usedLabels.add(operandText);
           const labelAddr = labels[operandText];
 
@@ -200,7 +212,6 @@ export default function assemble(source) {
   }
 
   // Basic Infinite Loop Check
-
   for (let i = 0; i < words.length; i++) {
     const w = words[i];
     const parts = w.text.split(/\s+/);
@@ -263,6 +274,7 @@ export default function assemble(source) {
   return { words, labels, warnings, errors };
 }
 
+// Setting up the Registers and Memory after assembly
 export function buildState(result, memorySize) {
 
   if (result.words.length > memorySize)

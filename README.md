@@ -60,9 +60,9 @@ https://github.com/raj-jaiswal/Saturn/releases/tag/release
 ## Authors & Authorship Declaration
 
 **Author:** Divya Swaroop Jaiswal  
-**Roll Numbr:** `2401CS38`
+**Roll Number:** `2401CS38`
 
-**Declaration of authorship (required):**  
+**Declaration of authorship:**  
 I, **Divya Swaroop Jaiswal (2401CS38)**, declare that I am the author of this project and repository. All code, design and documentation in this repository represent my own work unless external libraries are explicitly used and cited. 
 
 I grant permission for the project to be used for educational purposes under the MIT License included in this repo.

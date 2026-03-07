@@ -1,16 +1,7 @@
-// src/components/Listing.jsx
 import React from "react";
 
-/**
- * Props:
- *  - words: array [{ address, hex, text, lineno }]
- *  - warnings: array of strings
- *  - errors: array of strings
- *  - pc (optional): numeric PC to highlight row
- *  - selectedIndex, setSelectedIndex
- */
 export default function Listing({ words = [], warnings = [], errors = [], pc = null, selectedIndex = null, setSelectedIndex = () => {} }) {
-  // helper: find status for a word by lineno
+  // find status for a word by lineno
   function statusFor(word, index) {
     const ln = word.lineno;
 

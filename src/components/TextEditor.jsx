@@ -47,25 +47,18 @@ export default function TextEditor({ value, onChange }) {
       .split("\n")
       .map((line) => {
         const match = line.match(/(;|#).*$/);
-        if (!match) return escapeHtml(line);
+        if (!match) return line;
 
         const index = match.index;
         const codePart = line.slice(0, index);
         const commentPart = line.slice(index);
 
         return (
-          escapeHtml(codePart) +
-          `<span style="color:#6b7280">${escapeHtml(commentPart)}</span>`
+          codePart +
+          `<span style="color:#6b7280">${commentPart}</span>`
         );
       })
       .join("\n");
-  }
-
-  function escapeHtml(str) {
-    return str
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;");
   }
 
   const lines = value.split("\n");

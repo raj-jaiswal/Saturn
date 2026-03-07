@@ -1,3 +1,12 @@
+// Author: Divya Swaroop Jaiswal  
+// Roll Number: 2401CS38
+
+// Declaration of authorship:  
+// I, Divya Swaroop Jaiswal, declare that I am the author of this 
+// project and repository. All code, design and documentation in 
+// this repository represent my own work unless external libraries
+// are explicitly used and cited. 
+
 import React, { useState, useEffect, useRef } from "react";
 import Taskbar from "./components/Taskbar";
 import TextEditor from "./components/TextEditor";
@@ -10,10 +19,11 @@ import "./App.css";
 import "./index.css";
 
 import { openFile as fsOpen, saveFile as fsSave, saveFileAs as fsSaveAs } from "./services/file.service";
-import assemble, { buildState } from "../shared/assember";
+import assemble, { buildState } from "../shared/assembler";
 import { executeStep } from "./services/emulator.service";
 
 function App() {
+  // Variables
   const defaultContent = "# write your Simplex assembly here\n";
 
   const [content, setContent] = useState(defaultContent);
@@ -32,7 +42,7 @@ function App() {
     { name: "SP", value: "0x00000000" },
   ]);
 
-  // memory: 4096 words initialized to 0x00000000
+  // memory: 16 x 1024 words initialized to 0x00000000
   const MEMORY_WORDS = 1024 * 16;
   const PAGE_SIZE = 128;
 
@@ -48,11 +58,12 @@ function App() {
   const assemblyResultRef = useRef(null);
   const assemblyLogsRef = useRef([]);
 
-  // dirty tracking
+  // dirty tracking (For unsaved changes)
   useEffect(() => {
     setIsDirty(content !== lastSavedContent);
   }, [content, lastSavedContent]);
 
+  // File Operations
   async function handleOpen() {
     if (isDirty) {
       const choice = await window.electronAPI.showUnsavedDialog();
@@ -98,14 +109,22 @@ function App() {
     }
 
     if (result.halted) {
-      setConsoleLines(c => [...c, "Program Halted cleanly."]);
+      setConsoleLines(c => [...c, "Program Halted."]);
+      setIsHalted(true);
+      return;
+    }
+
+    const programSize = assemblyResult?.words?.length || 0;
+
+    if (result.currentPC >= programSize) {
+      setConsoleLines(c => [...c, "Program ended without Halt"]);
       setIsHalted(true);
       return;
     }
 
     setRegisters(result.registers);
     if (result.memory !== memory) setMemory(result.memory);
-    setSelectedIndex(result.currentPC); // Moves the highlight in the Listing view!
+    setSelectedIndex(result.currentPC);
   }
 
   function handleRun() {
@@ -128,6 +147,14 @@ function App() {
       
       if (result.halted) {
         setConsoleLines(c => [...c, "Program Halted cleanly."]);
+        halted = true;
+        break;
+      }
+      
+      const programSize = assemblyResult?.words?.length || 0;
+
+      if (result.currentPC >= programSize) {
+        setConsoleLines(c => [...c, "Program ended without Halt"]);
         halted = true;
         break;
       }
@@ -190,6 +217,7 @@ function App() {
     setConsoleLines((c) => [...c, "New file created"]);
   }
 
+  // Main assembly handler
   function handleAssemble() {
     const result = assemble(content);
 
@@ -223,7 +251,7 @@ function App() {
       return;
     }
 
-    // no fatal errors - proceed to load
+    // Load to memory if no Errors
     const machine = buildState(result, MEMORY_WORDS);
 
     if (!machine.ok) {
@@ -283,6 +311,7 @@ function App() {
     setConsoleLines((c) => [...c, `Memory[0x${(index).toString(16)}] = ${newValue}`]);
   }
 
+  // Handlers for all the Electron Window menu
   const saveRef = useRef();
   const openRef = useRef();
   const newRef = useRef();
@@ -295,6 +324,7 @@ function App() {
   saveAsRef.current = handleSaveAs;
 
   // close handler uses freshest state
+  // This basically checks for unsaved content, but the function is updated regularly.
   closeHandlerRef.current = async () => {
     if (!isDirty) {
       await window.electronAPI.confirmClose(true);
@@ -321,6 +351,7 @@ function App() {
     assemblyLogsRef.current = assemblyLogs;
   }, [assemblyLogs]);
 
+  // Electron Menu Options
   useEffect(() => {
     if (!window.electronAPI) return;
 
@@ -369,6 +400,10 @@ function App() {
         setMode("listing");
       });
 
+    const removeAppClose = window.electronAPI.onAppClose(() => {
+      closeHandlerRef.current();
+    });
+
     return () => {
       removeNew && removeNew();
       removeOpen && removeOpen();
@@ -379,29 +414,19 @@ function App() {
       removeExportListing && removeExportListing();
       removeExportLogs && removeExportLogs();
       removeImportObject && removeImportObject();
+      removeAppClose && removeAppClose();
     };
   }, []);
-
-  useEffect(() => {
-    if (!window.electronAPI) return;
-
-    const remove = window.electronAPI.onAppClose(() => {
-      closeHandlerRef.current();
-    });
-
-    return () => {
-      remove && remove();
-    };
-  }, []); 
 
   useEffect(() => {
     window.electronAPI?.setListingMode(false);
   }, []);
 
+  // CLI Handlers
   useEffect(() => {
     if (!window.electronAPI) return;
 
-    const remove1 = window.electronAPI.onCLIOpenFile((filePath) => {
+    const removeCLIOpenFile = window.electronAPI.onCLIOpenFile((filePath) => {
       // read file via electronAPI.readFile and set content then open editor / assemble
       window.electronAPI.readFile(filePath).then(content => {
         setContent(content);
@@ -410,7 +435,7 @@ function App() {
       });
     });
 
-    const remove2 = window.electronAPI.onCLIImportObject((filePath) => {
+    const removeCLIImportObject = window.electronAPI.onCLIImportObject((filePath) => {
       // ask main to import object file (we created import handler earlier)
       window.electronAPI.importObjectFile(filePath).then((result) => {
         if (!result || result.error) {
@@ -424,17 +449,17 @@ function App() {
     });
 
     return () => {
-      remove1 && remove1();
-      remove2 && remove2();
+      removeCLIOpenFile && removeCLIOpenFile();
+      removeCLIImportObject && removeCLIImportObject();
     };
   }, []);
 
-  const pcReg = registers.find((r) => r.name === "PC");
-  const currentPC = pcReg ? parseInt(pcReg.value, 16) : null;
+  const currentPC = Number.parseInt(registers.find(r => r.name === "PC")?.value, 16);
   const hasErrors = assemblyResult?.errors?.length > 0;
 
   const appStyle = { backgroundColor: "var(--bg)", color: "var(--muted)" };
 
+  // Overall UI
   return (
     <div className="h-screen flex flex-col overflow-hidden" style={appStyle}>
       <Taskbar

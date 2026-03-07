@@ -7,7 +7,6 @@ export default function Memory({ memory = [], pageSize = 128, onUpdateMemory = (
   const [editingIndex, setEditingIndex] = useState(null);
   const [tempValue, setTempValue] = useState("");
 
-  // NEW: page editing state
   const [pageInput, setPageInput] = useState("");
   const [editingPage, setEditingPage] = useState(false);
 
@@ -15,6 +14,7 @@ export default function Memory({ memory = [], pageSize = 128, onUpdateMemory = (
     return `0x${index.toString(16).padStart(4, "0")}`;
   }
 
+  // Remove all whitespace, invalid character, and take last 8 valid characters, pad with 0s on right
   function normalizeHex(val) {
     if (!val) return null;
     let v = String(val).trim();
@@ -28,6 +28,7 @@ export default function Memory({ memory = [], pageSize = 128, onUpdateMemory = (
   const start = page * pageSize;
   const pageSlice = memory.slice(start, start + pageSize);
 
+  // For Editing Values
   function beginEdit(absIndex) {
     setEditingIndex(absIndex);
     setTempValue(memory[absIndex]);

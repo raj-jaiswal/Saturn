@@ -1,73 +1,79 @@
+// Author: Divya Swaroop Jaiswal  
+// Roll Number: 2401CS38
+
+// Declaration of authorship:  
+// I, Divya Swaroop Jaiswal, declare that I am the author of this 
+// project and repository. All code, design and documentation in 
+// this repository represent my own work unless external libraries
+// are explicitly used and cited. 
+
 import { app, BrowserWindow, ipcMain, dialog, Menu, shell } from "electron";
 import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs/promises";
-import assemble from "../shared/assember.js";
+import assemble from "../shared/assembler.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Function to handle assembling in CLI (without opening GUI)
 async function runAssemble(filePath) {
-  try {
-    const src = await fs.readFile(filePath, "utf-8");
-    const result = assemble(src);
+  const src = await fs.readFile(filePath, "utf-8");
+  const result = assemble(src);
 
-    const base = path.basename(filePath, path.extname(filePath));
-    const dir = path.dirname(filePath);
+  const base = path.basename(filePath, path.extname(filePath));
+  const dir = path.dirname(filePath);
 
-    const lpath = path.join(dir, base + ".l");
-    const opath = path.join(dir, base + ".o");
-    const logpath = path.join(dir, base + ".log");
+  const lpath = path.join(dir, base + ".l");
+  const opath = path.join(dir, base + ".o");
+  const logpath = path.join(dir, base + ".log");
 
-    // Listing
-    const lines = (result.words || []).map((w) => {
-      const addr = w.address.toString(16).padStart(4, "0");
-      return `${addr}\t${w.hex}\t\t${w.text}`;
-    });
+  // Listing
+  const lines = (result.words || []).map((w) => {
+    const addr = w.address.toString(16).padStart(4, "0");
+    return `${addr}\t${w.hex}\t\t${w.text}`;
+  });
 
-    await fs.writeFile(lpath, lines.join("\n"), "utf-8");
+  await fs.writeFile(lpath, lines.join("\n"), "utf-8");
 
-    // Object
-    const buffer = Buffer.alloc((result.words || []).length * 4);
-    (result.words || []).forEach((w, i) => {
-      const val = parseInt(w.hex, 16) >>> 0;
-      buffer.writeUInt32LE(val, i * 4);
-    });
+  // Object
+  const buffer = Buffer.alloc((result.words || []).length * 4);
+  (result.words || []).forEach((w, i) => {
+    const val = parseInt(w.hex, 16) >>> 0;
+    buffer.writeUInt32LE(val, i * 4);
+  });
 
-    await fs.writeFile(opath, buffer);
+  await fs.writeFile(opath, buffer);
 
-    // Logs
-    const logs = [];
-    logs.push("=== Assemble output ===");
+  // Logs
+  const logs = [];
+  logs.push("=== Assemble output ===");
 
-    if (result.errors?.length) {
-      logs.push("ERRORS:");
-      result.errors.forEach(e => logs.push(`ERR: ${e}`));
-    }
-
-    if (result.warnings?.length) {
-      logs.push("--- warnings ---");
-      result.warnings.forEach(w => logs.push(`WARN: ${w}`));
-    }
-
-    logs.push("--- labels ---");
-    Object.keys(result.labels || {}).forEach(k => {
-      const v = result.labels[k];
-      logs.push(`${k} : ${v}`);
-    });
-
-    if (!result.errors?.length) logs.push("Program assembled.");
-
-    await fs.writeFile(logpath, logs.join("\n"), "utf-8");
-
-    console.log(`Wrote:\n\t${lpath}\n\t${opath}\n\t${logpath}`);
-  } catch (err) {
-    console.error("Failed:", err.message || err);
+  if (result.errors?.length) {
+    logs.push("ERRORS:");
+    result.errors.forEach(e => logs.push(`ERR: ${e}`));
   }
 
+  if (result.warnings?.length) {
+    logs.push("--- warnings ---");
+    result.warnings.forEach(w => logs.push(`WARN: ${w}`));
+  }
+
+  logs.push("--- labels ---");
+  Object.keys(result.labels || {}).forEach(k => {
+    const v = result.labels[k];
+    logs.push(`${k} : ${v}`);
+  });
+
+  if (!result.errors?.length) logs.push("Program assembled.");
+
+  await fs.writeFile(logpath, logs.join("\n"), "utf-8");
+
+  console.log(`Wrote:\n\t${lpath}\n\t${opath}\n\t${logpath}`);
   app.exit();
 }
 
+// GUI Window
 function createWindow() {
   const win = new BrowserWindow({
     width: 1200,
@@ -81,12 +87,16 @@ function createWindow() {
     backgroundColor: "#181818"
   });
 
+  // This is to make sure the window references correct source
+  // When in production, use results from npm build
   if (!app.isPackaged) {
     win.loadURL("http://localhost:5173");
   } else {
     win.loadFile(path.join(__dirname, "../dist/index.html"));
   }
 
+  // Handling Close instead of normal close 
+  // For showing dialog box for unsaved work
   win._allowClose = false;
   win.on("close", (e) => {
     if (win._allowClose) return; // allow normal close
@@ -96,6 +106,7 @@ function createWindow() {
   });
   createMenu(win);
 
+  // CLI Handling Here
   const pendingArgs = process.argv.slice(1); // packaged executables include exec + exe path; adjust as needed
 
   // simple parser: support --open=path or --import=path or plain file path
@@ -123,6 +134,7 @@ function createWindow() {
 }
 
 function createMenu(win) {
+  // This is for the Electron Window taskbar options
   const template = [
     {
       label: "File",
@@ -185,6 +197,7 @@ function createMenu(win) {
 }
 
 app.whenReady().then(async () => {
+  // Handling CLI First
   const args = process.argv.slice(1);
 
   if (args.includes("--help") || args.includes("-h")) {
@@ -200,7 +213,7 @@ Usage:
     return;
   }
 
-  // If plain .asm without --open → headless assemble
+  // If plain .asm without --open, headless assemble
   const plainAsm = args.find(a => a.endsWith(".asm"));
   const hasOpenFlag = args.some(a => a.startsWith("--open="));
 
@@ -213,7 +226,7 @@ Usage:
   createWindow();
 });
 
-// ------------------ File dialog / FS handlers (unchanged) ------------------
+// File System handlers
 ipcMain.handle("dialog:openFile", async () => {
   const result = await dialog.showOpenDialog({
     properties: ["openFile"],
@@ -247,7 +260,8 @@ ipcMain.handle("file:read", async (event, filePath) => {
   return content;
 });
 
-// ------------------ Unsaved changes dialog ------------------
+// Unsaved changes dialog
+// Shown when exiting or opening new file with unsaved changes
 ipcMain.handle("dialog:unsaved", async () => {
   const result = await dialog.showMessageBox({
     type: "warning",
@@ -287,6 +301,8 @@ ipcMain.on("app:setListingMode", (event, isListing) => {
   if (logs) logs.enabled = isListing;
 });
 
+
+// Handling Exports
 ipcMain.handle("export:binary", async (event, words) => {
   const result = await dialog.showSaveDialog({
     filters: [{ name: "Object", extensions: ["o"] }]
@@ -312,28 +328,28 @@ ipcMain.handle("export:listing", async (event, payload) => {
 
   if (result.canceled || !result.filePath) return;
 
-  function statusFor(word, index) {
-    const ln = word.lineno;
-
+  const lines = words.map((w, idx) => {
+    const ln = w.lineno;
+    let status = "";
     const e = errors.find((s) => s.includes(`Line ${ln}`));
-    if (e) return `ERR: ${e}`;
-
-    const w = warnings.find((s) => s.includes(`Line ${ln}`));
-    if (w) return `WARN: ${w}`;
-
-    if (index === 0) {
-      const globalWarning = warnings.find((s) => !s.includes("Line "));
-      if (globalWarning) {
-        return `WARN: ${globalWarning}`;
+    if (e) {
+      status = `ERR: ${e}`;
+    } else {
+      // Check for line-specific warning
+      const warn = warnings.find((s) => s.includes(`Line ${ln}`));
+      if (warn) {
+        status = `WARN: ${warn}`;
+      } else if (idx === 0) {
+        // Global warning
+        const globalWarning = warnings.find((s) => !s.includes("Line "));
+        if (globalWarning) {
+          status = `WARN: ${globalWarning}`;
+        }
       }
     }
 
-    return "";
-  }
-
-  const lines = words.map((w, idx) => {
-    const status = statusFor(w, idx);
     const addr = w.address.toString(16).padStart(4, "0");
+
     return `${addr}  ${w.hex}   ${w.text}${status ? "   " + status : ""}`;
   });
 
@@ -350,6 +366,35 @@ ipcMain.handle("export:logs", async (event, logs) => {
   await fs.writeFile(result.filePath, logs.join("\n"), "utf-8");
 });
 
+function parseObjectBuffer(buffer) {
+  // must be multiple of 4 bytes
+  if (buffer.length % 4 !== 0) return { error: true };
+
+  const words = [];
+
+  for (let i = 0; i < buffer.length; i += 4) {
+    const value = buffer.readUInt32LE(i);
+
+    words.push({
+      address: i / 4,
+      hex: (value >>> 0).toString(16).toUpperCase().padStart(8, "0"),
+      text: "",
+      lineno: 0
+    });
+  }
+
+  return { words };
+}
+
+async function readObjectFile(filePath) {
+  try {
+    const buffer = await fs.readFile(filePath);
+    return parseObjectBuffer(buffer);
+  } catch {
+    return { error: true };
+  }
+}
+
 ipcMain.handle("import:object", async () => {
   const result = await dialog.showOpenDialog({
     properties: ["openFile"],
@@ -358,51 +403,9 @@ ipcMain.handle("import:object", async () => {
 
   if (result.canceled || !result.filePaths.length) return null;
 
-  try {
-    const buffer = await fs.readFile(result.filePaths[0]);
-
-    // must be multiple of 4 bytes
-    if (buffer.length % 4 !== 0) return { error: true };
-
-    const words = [];
-
-    for (let i = 0; i < buffer.length; i += 4) {
-      const value = buffer.readUInt32LE(i);
-
-      words.push({
-        address: i / 4,
-        hex: (value >>> 0).toString(16).toUpperCase().padStart(8, "0"),
-        text: "",        // blank instruction
-        lineno: 0        // no source line
-      });
-    }
-
-    return { words };
-  } catch {
-    return { error: true };
-  }
+  return await readObjectFile(result.filePaths[0]);
 });
 
 ipcMain.handle("import:object-from-path", async (event, filePath) => {
-  try {
-    const buffer = await fs.readFile(filePath);
-
-    if (buffer.length % 4 !== 0) return { error: true };
-
-    const words = [];
-
-    for (let i = 0; i < buffer.length; i += 4) {
-      const value = buffer.readUInt32LE(i);
-      words.push({
-        address: i / 4,
-        hex: (value >>> 0).toString(16).toUpperCase().padStart(8, "0"),
-        text: "",
-        lineno: 0
-      });
-    }
-
-    return { words };
-  } catch {
-    return { error: true };
-  }
+  return await readObjectFile(filePath);
 });
