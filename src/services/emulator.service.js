@@ -74,7 +74,7 @@ export function executeStep(registers, memory) {
       case 8:  // shl
         A = B << A; break;
       case 9:  // shr
-        A = B >> A; break; // Arithmetic shift right
+        A = B >> A; break;
       case 10: // adj
         SP = SP + operand; break;
       case 11: // a2sp

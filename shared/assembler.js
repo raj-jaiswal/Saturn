@@ -65,8 +65,24 @@ function parseNumber(text) {
 }
 
 function isValidLabel(name) {
-  return /^[A-Za-z][A-Za-z0-9]*$/.test(name);
+  return /^[A-Za-z][A-Za-z0-9_]*$/.test(name);
 }
+
+const getJumpTarget = (word) => {
+  // If not valid branch instruction, skip
+  const mnemonic = word.text.split(/\s+/)[0].toLowerCase();
+  if (!relative_branch.has(mnemonic)) return null;
+
+  const fullWord = parseInt(word.hex, 16);
+  let operand = (fullWord >>> 8) & 0xFFFFFF;
+
+  // Sign extend 24-bit
+  if (operand & 0x800000) {
+    operand |= 0xFF000000;
+  }
+
+  return word.address + 1 + operand;
+};
 
 export default function assemble(source) {
   const errors = [];
@@ -209,59 +225,23 @@ export default function assemble(source) {
     words.push({ address, text: line, hex, lineno: i + 1 });
     address++;
   }
-
+  
   // Basic Infinite Loop Check
-  for (let i = 0; i < words.length; i++) {
-    const w = words[i];
-    const parts = w.text.split(/\s+/);
-    const mnemonic = parts[0].toLowerCase();
+  for (const w of words) {
+    const target = getJumpTarget(w);
+    if (target === null || target > w.address) continue;
 
-    if (!relative_branch.has(mnemonic)) continue;
+    // If an instruction branches backwards, check if there is any instruction between it and target which jumps further
+    const loopBody = words.slice(target, w.address + 1);
 
-    // reconstruct operand from hex
-    const fullWord = parseInt(w.hex, 16);
-    let operand = (fullWord >>> 8) & 0xFFFFFF;
+    // Check if any instruction inside the loop branches outside of it
+    const escapes = loopBody.some((innerWord) => {
+      const innerTarget = getJumpTarget(innerWord);
+      return innerTarget !== null && (innerTarget < target || innerTarget > w.address);
+    });
 
-    // sign extend 24-bit
-    if (operand & 0x800000) {
-      operand |= 0xFF000000;
-    }
-
-    const target = w.address + 1 + operand;
-
-    // only care about backward jumps
-    if (target <= w.address) {
-
-      let escapes = false;
-
-      for (let j = target; j <= w.address; j++) {
-        const inner = words[j];
-        const innerParts = inner.text.split(/\s+/);
-        const innerMnemonic = innerParts[0].toLowerCase();
-
-        if (!relative_branch.has(innerMnemonic)) continue;
-
-        const innerWord = parseInt(inner.hex, 16);
-        let innerOperand = (innerWord >>> 8) & 0xFFFFFF;
-
-        if (innerOperand & 0x800000) {
-          innerOperand |= 0xFF000000;
-        }
-
-        const innerTarget = inner.address + 1 + innerOperand;
-
-        // If jump escapes outside the loop region
-        if (innerTarget < target || innerTarget > w.address) {
-          escapes = true;
-          break;
-        }
-      }
-
-      if (!escapes) {
-        warnings.push(
-          `Line ${w.lineno}: possible infinite loop (backward jump)`
-        );
-      }
+    if (!escapes) {
+      warnings.push(`Line ${w.lineno}: possible infinite loop (backward jump)`);
     }
   }
 
