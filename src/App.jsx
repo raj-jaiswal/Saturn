@@ -369,7 +369,7 @@ function App() {
       window.electronAPI.onMenuExportListing(() => {
         const r = assemblyResultRef.current || {};
         window.electronAPI.exportListing({
-          words: r.words || [],
+          words: JSON.parse(JSON.stringify(r.words || [])),
           warnings: r.warnings || [],
           errors: r.errors || []
         });

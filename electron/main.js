@@ -24,7 +24,7 @@ async function runAssemble(filePath) {
   const base = path.basename(filePath, path.extname(filePath));
   const dir = path.dirname(filePath);
 
-  const lpath = path.join(dir, base + ".l");
+  const lpath = path.join(dir, base + ".lst");
   const opath = path.join(dir, base + ".o");
   const logpath = path.join(dir, base + ".log");
 
@@ -151,7 +151,7 @@ function createMenu(win) {
           click: () => win.webContents.send("menu:exportBinary")
         },
         {
-          label: "Export Listing (.l)",
+          label: "Export Listing (.lst)",
           id: "exportListing",
           enabled: false,
           click: () => win.webContents.send("menu:exportListing")
@@ -204,7 +204,7 @@ app.whenReady().then(async () => {
     console.log(`saturn - Simplex assembler tool
 
 Usage:
-  saturn <file.asm>            assemble file, produces .o, .l, .log
+  saturn <file.asm>            assemble file, produces .o, .lst, .log
   saturn --open=<file.asm>     open file in GUI
   saturn --import=<file.o>     open object file in GUI
   saturn --help                show this help
@@ -323,7 +323,7 @@ ipcMain.handle("export:binary", async (event, words) => {
 ipcMain.handle("export:listing", async (event, payload) => {
   const { words = [], warnings = [], errors = [] } = payload || {};
   const result = await dialog.showSaveDialog({
-    filters: [{ name: "Listing", extensions: ["l"] }]
+    filters: [{ name: "Listing", extensions: ["lst"] }]
   });
 
   if (result.canceled || !result.filePath) return;
@@ -350,7 +350,7 @@ ipcMain.handle("export:listing", async (event, payload) => {
 
     const addr = w.address.toString(16).padStart(4, "0");
 
-    return `${addr}  ${w.hex}   ${w.text}${status ? "   " + status : ""}`;
+    return `${addr}  ${w.hex}  ${w.text}  ${status ? status : ""}`;
   });
 
   await fs.writeFile(result.filePath, lines.join("\n"), "utf-8");
