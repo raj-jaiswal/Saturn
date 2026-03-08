@@ -140,7 +140,7 @@ export default function assemble(source) {
     const mnemonic = parts[0].toLowerCase();
     const operandText = parts.slice(1).join(" ").trim();
 
-    /* Data */
+    // Data
     if (mnemonic === "data") {
       const num = parseNumber(operandText);
       if (num === null)
@@ -155,13 +155,12 @@ export default function assemble(source) {
       continue;
     }
 
-    /* SET (invalid here) */
+    // SET (Already Handled in Pass 1) 
     if (mnemonic === "set") {
-      errors.push(`Line ${i+1}: SET without label`);
       continue;
     }
 
-    /* Unknown Mnemonic */
+    // Unknown Mnemonic
     if (!OPCODES.hasOwnProperty(mnemonic)) {
       errors.push(`Line ${i+1}: unknown mnemonic '${mnemonic}'`);
       words.push({ address, text: line, hex: toHex32(0), lineno: i + 1 });
@@ -169,7 +168,7 @@ export default function assemble(source) {
       continue;
     }
 
-    /* Operand checks */
+    // Operand checks
     const needsOp = need_operand.has(mnemonic);
     const noOp = no_operand.has(mnemonic);
     const hasOperand = operandText.length > 0;
