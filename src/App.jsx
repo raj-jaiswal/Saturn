@@ -116,7 +116,7 @@ function App() {
 
     const programSize = assemblyResult?.words?.length || 0;
 
-    if (result.currentPC >= programSize) {
+    if (result.currentPC > programSize) {
       setConsoleLines(c => [...c, "Program ended without Halt"]);
       setIsHalted(true);
       return;
@@ -134,7 +134,7 @@ function App() {
     let currentMem = memory;
     let halted = false;
     let stepCount = 0;
-    const MAX_STEPS = 10000; // Safeguard against infinite loops freezing the React UI
+    const MAX_STEPS = 10000; // Safeguard against infinite loops
 
     while (!halted && stepCount < MAX_STEPS) {
       const result = executeStep(currentRegs, currentMem);
@@ -153,7 +153,7 @@ function App() {
       
       const programSize = assemblyResult?.words?.length || 0;
 
-      if (result.currentPC >= programSize) {
+      if (result.currentPC > programSize) {
         setConsoleLines(c => [...c, "Program ended without Halt"]);
         halted = true;
         break;

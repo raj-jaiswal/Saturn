@@ -1,4 +1,11 @@
-// file.services.js
+// Author: Divya Swaroop Jaiswal  
+// Roll Number: 2401CS38
+
+// Declaration of authorship:  
+// I, Divya Swaroop Jaiswal, declare that I am the author of this 
+// project and repository. All code, design and documentation in 
+// this repository represent my own work unless external libraries
+// are explicitly used and cited. 
 
 export async function openFile() {
   if (window?.electronAPI?.openFile) {
@@ -48,7 +55,7 @@ export async function saveFileAs(content) {
       return null;
     }
   } else {
-    // browser fallback: store as untitled
+    // fallback: store as untitled if no path found
     try {
       localStorage.setItem("saturn-untitled", content);
       return { path: null };

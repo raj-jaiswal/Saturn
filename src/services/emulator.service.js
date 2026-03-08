@@ -1,15 +1,22 @@
-// Helper to safely convert 32-bit signed integers to your hex string format
+// Author: Divya Swaroop Jaiswal  
+// Roll Number: 2401CS38
+
+// Declaration of authorship:  
+// I, Divya Swaroop Jaiswal, declare that I am the author of this 
+// project and repository. All code, design and documentation in 
+// this repository represent my own work unless external libraries
+// are explicitly used and cited. 
+
 export function toHex32(num) {
   return "0x" + (num >>> 0).toString(16).toUpperCase().padStart(8, "0");
 }
 
-// Helper to parse hex strings back into 32-bit signed integers for math
 export function parseHex(hexStr) {
   return parseInt(hexStr, 16) | 0; 
 }
 
 export function executeStep(registers, memory) {
-  // 1. Parse current registers
+  // Parsing Registers
   let A = parseHex(registers.find(r => r.name === "A").value);
   let B = parseHex(registers.find(r => r.name === "B").value);
   let PC = parseHex(registers.find(r => r.name === "PC").value);
@@ -20,28 +27,26 @@ export function executeStep(registers, memory) {
     return { error: `PC out of bounds (0x${PC.toString(16)})`, halted: true };
   }
 
-  // 2. Fetch and Decode Instruction
+  // Fetch and Decode Instruction
   const instruction = parseHex(memory[PC]);
   const opcode = instruction & 0xFF;        // Lowest 8 bits
   const operand = instruction >> 8;         // Top 24 bits (Sign-extended automatically by JS >>)
 
   if (opcode === 18) {
-    return { halted: true }; // HALT instruction
+    return { halted: true };
   }
 
-  // 3. Implicitly increment PC BEFORE instruction execution, as required by the docs
   PC = PC + 1;
 
-  let newMemory = memory; // We will only copy memory if we need to write to it
+  // This prevents mis-steps
+  let newMemory = memory; // Only copy memory if we need to write to it
 
-  // Helper for safe memory reads
   const readMem = (address) => {
     if (address < 0 || address >= memory.length) throw new Error(`Memory read out of bounds at ${address}`);
     return parseHex(memory[address]);
   };
 
   try {
-    // 4. Execute operation
     switch (opcode) {
       case 0:  // ldc
         B = A; A = operand; break;

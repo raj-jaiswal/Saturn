@@ -32,12 +32,6 @@ Provides a GUI IDE and a CLI for assembling, inspecting and executing SIMPLEX as
 
 ---
 
-## Releases
-
-- Release (Windows Setup): https://github.com/raj-jaiswal/Saturn/releases/tag/release
-
----
-
 ## Project status & summary
 
 **What Saturn does:**
@@ -111,7 +105,7 @@ root/
 
 ---
 
-## Features (detailed)
+## Features
 
 ### Editor & UI
 - Simple, lightweight code editor (TextEditor) that supports saving and opening files.  
