@@ -46,6 +46,20 @@
       ],
       "icon": "build/icon.ico"
     },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": ["x64"]
+        },
+        {
+          "target": "deb",
+          "arch": ["x64"]
+        }
+      ],
+      "category": "Development",
+      "icon": "electron/logo.png"
+    },
     "nsis": {
       "oneClick": false,
       "perMachine": true,
@@ -74,7 +88,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "electron": "electron .",
-    "export": "npm run build && electron-builder"
+    "export": "npm run build && electron-builder",
+    "export:linux": "npm run build && electron-builder --linux"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.12",
