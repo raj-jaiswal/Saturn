@@ -49,6 +49,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   importObject: () => ipcRenderer.invoke("import:object"),
   importObjectFile: (path) => ipcRenderer.invoke("import:object-from-path", path),
   openSourceFile: (path) => ipcRenderer.invoke("open:source-from-path", path),
+  exportHexdump: (memory) => ipcRenderer.invoke("export:hexdump", memory),
   
   setListingMode: (isListing) =>
     ipcRenderer.send("app:setListingMode", isListing),
@@ -69,6 +70,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
   onMenuImportObject: (cb) => {
     ipcRenderer.on("menu:importObject", cb);
     return () => ipcRenderer.removeListener("menu:importObject", cb);
+  },
+  onMenuHexdump: (cb) => {
+    ipcRenderer.on("menu:hexdump", cb);
+    return () => ipcRenderer.removeListener("menu:hexdump", cb);
   },
 
   // CLI listeners

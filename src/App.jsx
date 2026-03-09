@@ -317,6 +317,7 @@ function App() {
   const newRef = useRef();
   const saveAsRef = useRef();
   const closeHandlerRef = useRef();
+  const memoryRef = useRef([]);
 
   saveRef.current = handleSave;
   openRef.current = handleOpen;
@@ -350,6 +351,10 @@ function App() {
   useEffect(() => {
     assemblyLogsRef.current = assemblyLogs;
   }, [assemblyLogs]);
+
+  useEffect(() => {
+    memoryRef.current = memory;
+  }, [memory]);
 
   // Electron Menu Options
   useEffect(() => {
@@ -404,6 +409,10 @@ function App() {
       closeHandlerRef.current();
     });
 
+    const removeHexdump = window.electronAPI.onMenuHexdump(() => {
+      window.electronAPI.exportHexdump(memoryRef.current);
+    });
+
     return () => {
       removeNew && removeNew();
       removeOpen && removeOpen();
@@ -415,6 +424,7 @@ function App() {
       removeExportLogs && removeExportLogs();
       removeImportObject && removeImportObject();
       removeAppClose && removeAppClose();
+      removeHexdump && removeHexdump();
     };
   }, []);
 

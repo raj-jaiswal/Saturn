@@ -167,6 +167,10 @@ function createMenu(win) {
           label: "Import Object File (.o)",
           click: () => win.webContents.send("menu:importObject")
         },
+        {
+          label: "Hexdump Memory (.txt)",
+          click: () => win.webContents.send("menu:hexdump")
+        },
         { type: "separator" },
         { role: "quit" },
       ],
@@ -408,4 +412,23 @@ ipcMain.handle("import:object", async () => {
 
 ipcMain.handle("import:object-from-path", async (event, filePath) => {
   return await readObjectFile(filePath);
+});
+
+// Hexdump Export
+ipcMain.handle("export:hexdump", async (event, memory) => {
+  const result = await dialog.showSaveDialog({
+    filters: [{ name: "Text", extensions: ["txt"] }]
+  });
+
+  if (result.canceled || !result.filePath) return;
+
+  const words = memory.map(w => w.replace(/^0x/, "").toUpperCase());
+
+  const lines = [];
+  // Write in chunks of 8 per line
+  for (let i = 0; i < words.length; i += 8) {
+    lines.push(words.slice(i, i + 8).join(" "));
+  }
+
+  await fs.writeFile(result.filePath, lines.join("\n"), "utf-8");
 });
