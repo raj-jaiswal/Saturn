@@ -58,7 +58,19 @@
         }
       ],
       "category": "Development",
-      "icon": "electron/logo.png"
+      "icon": "electron/logo.png",
+      "maintainer": "Divya Swaroop Jaiswal <rajj91783@gmail.com>"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["x64", "arm64"]
+        }
+      ],
+      "category": "public.app-category.developer-tools",
+      "icon": "electron/logo.png",
+      "artifactName": "${productName}-${version}-mac-${arch}.${ext}"
     },
     "nsis": {
       "oneClick": false,
@@ -89,7 +101,8 @@
     "preview": "vite preview",
     "electron": "electron .",
     "export": "npm run build && electron-builder",
-    "export:linux": "npm run build && electron-builder --linux"
+    "export:linux": "npm run build && electron-builder --linux",
+    "export:mac": "npm run build && electron-builder --mac"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.12",
