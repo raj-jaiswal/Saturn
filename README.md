@@ -46,8 +46,10 @@ Provides a GUI IDE and a CLI for assembling, inspecting and executing SIMPLEX as
 
 ## Download / Release
 
-Download the Windows installer from the release page:
+Supports Windows, Mac & Linux \
+Download the installer from the release page:
 https://github.com/raj-jaiswal/Saturn/releases/tag/release
+
 
 >Windows Defender may show a warning because Saturn is not digitally signed.\
 Click:
@@ -272,9 +274,11 @@ npm run electron
 ### Useful developer commands
 
 ```bash
-npm run lint          # run eslint
-npm run build         # produce production optimized `dist/`
-npm run export        # build + package (runs `npm run build && electron-builder`)
+npm run lint             # run eslint
+npm run build            # produce production optimized `dist/`
+npm run export           # build + package for windows (runs `npm run build && electron-builder`)
+npm run export:linux     # build + package for Linux
+npm run export:mac       # build + package for Mac
 ```
 
 ---
@@ -286,6 +290,10 @@ npm run export        # build + package (runs `npm run build && electron-builder
 ```bash
 npm run export
 # runs: npm run build && electron-builder
+npm run export:linux
+# Export for Linux
+npm run export:mac
+# Export for Mac
 ```
 
 ### Output
@@ -332,6 +340,12 @@ Assemble and run the above using the GUI or CLI. Inspect the listing to see the 
 - **Stale UI values**: Ensure emulator callbacks provide new arrays/objects (avoid mutating previous arrays in-place; use `slice()` or new objects).  
 - **CLI not in PATH**: Re-run installer with PATH option enabled or add the install directory to PATH manually.  
 - **Debugging packaging issues**: Inspect `builder-debug.yml` created by electron-builder for details on packaging steps.
+
+---
+
+## Contributors
+**Md. Minhaj**: https://github.com/mdminhaj-2106 \
+Mac Export
 
 ---
 
