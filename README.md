@@ -48,7 +48,7 @@ Provides a GUI IDE and a CLI for assembling, inspecting and executing SIMPLEX as
 
 Supports Windows, Mac & Linux \
 Download the installer from the release page:
-https://github.com/raj-jaiswal/Saturn/releases/tag/release
+https://github.com/raj-jaiswal/Saturn/releases/
 
 
 >Windows Defender may show a warning because Saturn is not digitally signed.\
